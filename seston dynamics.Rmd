@@ -1,0 +1,25 @@
+---
+title: "rawdata input and cleaning"
+author: "MPG"
+date: "April 5, 2019"
+output: html_document
+---
+data input from .csv and RESEARCH server
+file si named by sensor's name only. File include date,time,battery,temperature,chl(ug/L),gain voltage
+remember to change chl column from scientific format to general
+```{r setup, include=FALSE}
+setwd("R:/EcosystemsLab/2019 Brandywine River/rawdata")
+data_colnames = read.csv("colnames.csv")
+data = read.csv("bonnie_Mar2719&1552__Apr319&1507.csv") 
+
+```
+
+Package loads
+```{r,warning=F}
+#necessary packages: 
+pack_list<-list ("ggplot2")
+for(i in 1:length(pack_list)){
+  install.packages(paste("", pack_list[[i]]),repos = "http://cran.us.r-project.org")
+}
+```
+
