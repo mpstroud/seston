@@ -5,14 +5,16 @@ date: "April 5, 2019"
 output: html_document
 ---
 data input from .csv and RESEARCH server
-file si named by sensor's name only. File include date,time,battery,temperature,chl(ug/L),gain voltage
+file is named by sensor's name only. File include date,time,battery,temperature,chl(ug/L),gain voltage
 remember to change chl column from scientific format to general
 ```{r setup, include=FALSE}
 setwd("R:/EcosystemsLab/2019 Brandywine River/rawdata")
 data_colnames = read.csv("colnames.csv")
 data = read.csv("bonnie_Mar2719&1552__Apr319&1507.csv") 
 
-```
+qdata <- read.csv(url("https://waterdata.usgs.gov/nwis/dv?cb_00010=on&cb_00045=on&cb_00060=on&cb_00095=on&cb_00300=on&cb_00400=on&cb_63680=on&cb_80154=on&cb_80155=on&format=rdb&site_no=01481000&referred_module=sw&period=&begin_date=2018-03-27&end_date=2019-04-04.txt"))
+qdata = read.csv("qdata.csv") 
+```  
 
 Package loads
 ```{r,warning=F}
@@ -21,5 +23,16 @@ pack_list<-list ("ggplot2")
 for(i in 1:length(pack_list)){
   install.packages(paste("", pack_list[[i]]),repos = "http://cran.us.r-project.org")
 }
+```
+
+Calculate daily means/max/min from high-frequency data
+```{r}
+date<-as.Date(data$date, format = "%m/%d/%Y")
+date<-as.POSIXlt(date, tz = "America/New_York")
+
+dailydata<-aggregate(list(temperature = temp$temperature), 
+          list(hourofday = cut(temp$date_time, "1 hour")), 
+          mean)
+
 ```
 
