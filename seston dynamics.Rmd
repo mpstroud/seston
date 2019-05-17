@@ -8,9 +8,11 @@ data input from .csv and RESEARCH server
 file is named by sensor's name only. File include date,time,battery,temperature,chl(ug/L),gain voltage
 remember to change chl column from scientific format to general
 ```{r setup, include=FALSE}
-setwd("R:/EcosystemsLab/Ecosystems projects/Brandywine/raw_data")
-data_colnames = read.csv("colnames.csv")
-chldata = read.csv("BRA_BAM_Mar2019-Apr2019.csv") 
+setwd("R:/EcosystemsLab/Ecosystems projects/Brandywine/working_data/sensors/cyclops")
+chldata = read.csv("BRA_BAM_bonnie.csv") ; chldata[,1] <- NULL ; tail(chldata,1)
+chldata2 = read.csv("BRA_BAM_April17-May152019_bonnie.csv") ; head(chldata2,1)
+chldata = rbind(chldata,chldata2)
+write.csv(chldata, file = "BRA_BAM_bonnie.csv")
 
 qdata <- read.csv(url("https://waterdata.usgs.gov/nwis/dv?cb_00010=on&cb_00045=on&cb_00060=on&cb_00095=on&cb_00300=on&cb_00400=on&cb_63680=on&cb_80154=on&cb_80155=on&format=rdb&site_no=01481000&referred_module=sw&period=&begin_date=2018-03-27&end_date=2019-04-04.txt"))
 qdata = read.csv("qdata.csv") 
@@ -38,19 +40,6 @@ range_daily_chl<-aggregate(chl ~ date, data = chldata, range)
 
 ```
 
-Q-chl rating curve
-```{r}
-library(ggplot2)
-ratingcurve<-merge(mean_daily_chl,qdata,by = c("date"))
-
-ggplot(prelplot1, aes(x=q, y=chl)) +
-    geom_point(shape=1,size=3) +    
-    geom_smooth(method=lm) +
-    xlab("discharge (feet3/s)") +
-    ylab("sestonic chl (ug/L)") +
-    theme_bw()
-```
-
 Seston Chlorophyll time series------using dygraphs interactive: https://www.r-graph-gallery.com/time-series/
 ```{r}
 library(dygraphs);library(xts)
@@ -62,3 +51,17 @@ timeseries_chl=xts(x = chl_series[,-1], order.by = chl_series$date)
 dygraph(timeseries_chl,xlab = NULL, ylab = "sestonic chl (ug/L)") %>%
   dySeries(c("min", "mean", "max"))
 ```
+
+Q-chl rating curve
+```{r}
+library(ggplot2)
+ratingcurve<-merge(mean_daily_chl,qdata,by = c("date"))
+
+ggplot(ratingcurve, aes(x=Discharge, y=chl)) +
+    geom_point(shape=1,size=3) +    
+    geom_smooth(method=lm) +
+    xlab("discharge (feet3/s)") +
+    ylab("sestonic chl (ug/L)") +
+    theme_bw()
+```
+
