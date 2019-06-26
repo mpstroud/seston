@@ -1,0 +1,82 @@
+---
+title: "rawdata input and cleaning"
+author: "MPG"
+date: "April 5, 2019"
+output: html_document
+---
+Package loads
+```{r,warning=F}
+#necessary packages: 
+pack_list<-list ("ggplot2","openair","dygraphs","xts","dataRetrieval","devtools","dplyr")
+for(i in 1:length(pack_list)){
+  install.packages(paste("", pack_list[[i]]),repos = "http://cran.us.r-project.org")
+}
+install.packages("dataRetrieval", repos=c("http://owi.usgs.gov/R",getOption("repos")))
+library(devtools)
+install_github("USGS-R/dataRetrieval")
+```
+
+data input from .csv and RESEARCH server
+file is named by sensor's name only. File include date,time,battery,temperature,chl(ug/L),gain voltage
+remember to change chl column from scientific format to general
+```{r setup, include=FALSE}
+setwd("R:/EcosystemsLab/Ecosystems projects/Brandywine/working_data/sensors/cyclops")
+chldata = read.csv("BRA_BAM.csv") ; chldata[,1] <- NULL ; tail(chldata,1)
+chldata2 = read.csv("BRA_BAM_May15-Jun262019.csv") ; head(chldata2,1)
+chldata = rbind(chldata,chldata2)
+write.csv(chldata, file = "BRA_BAM.csv")
+```
+
+data input via URL from USGS using dataRetrieval package
+```{r}
+library(dplyr)
+library(dataRetrieval)#check station code online (usually an 8-15digit numebr)
+parameterCdFile <- parameterCdFile; names(parameterCdFile) #help guide for parameter code
+
+phosCds <- parameterCdFile[grep("phosphorus",parameterCdFile$parameter_nm, ignore.case=TRUE),]
+
+nrow(phosCds)
+
+
+
+
+qdata = read.table("clipboard",header=T,sep="\t") 
+```  
+
+Calculate daily means/max/min from high-frequency data
+```{r}
+date<-as.Date(chldata$date, format = "%m/%d/%Y")
+date<-as.POSIXlt(date, tz = "America/New_York")
+
+mean_daily_chl<-aggregate(chl ~ date, data = chldata, mean)
+max_daily_chl<-aggregate(chl ~ date, data = chldata, max)
+min_daily_chl<-aggregate(chl ~ date, data = chldata, min)
+range_daily_chl<-aggregate(chl ~ date, data = chldata, range)
+
+```
+
+Seston Chlorophyll time series------using dygraphs interactive: https://www.r-graph-gallery.com/time-series/
+```{r}
+library(dygraphs);library(xts)
+chl_series=cbind(mean_daily_chl,max_daily_chl[,2],min_daily_chl[,2])
+colnames(chl_series)<-c("date","mean","max","min")
+chl_series$date<-as.Date(chl_series$date, format = "%m/%d/%Y") #output is YYY-mm-dd
+timeseries_chl=xts(x = chl_series[,-1], order.by = chl_series$date)
+ 
+dygraph(timeseries_chl,xlab = NULL, ylab = "sestonic chl (ug/L)") %>%
+  dySeries(c("min", "mean", "max"))
+```
+
+Q-chl rating curve
+```{r}
+library(ggplot2)
+ratingcurve<-merge(mean_daily_chl,qdata,by = c("date"))
+
+ggplot(ratingcurve, aes(x=Discharge, y=chl)) +
+    geom_point(shape=1,size=3) +    
+    geom_smooth(method=lm) +
+    xlab("discharge (feet3/s)") +
+    ylab("sestonic chl (ug/L)") +
+    theme_bw()
+```
+
