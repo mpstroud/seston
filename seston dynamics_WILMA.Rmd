@@ -1,63 +1,123 @@
 ---
-title: "rawdata input and cleaning"
+title: "Seston dynamics"
 author: "MPG"
 date: "April 5, 2019"
-output: html_document
+output: html_document 
 ---
-data input from .csv and RESEARCH server
-file is named by sensor's name only. File include date,time,battery,temperature,chl(ug/L),gain voltage
-remember to change chl column from scientific format to general
-```{r setup, include=FALSE}
-setwd("R:/EcosystemsLab/Ecosystems projects/Brandywine/working_data/sensors/cyclops")
-chldata = read.csv("BRA_WILMA.csv") ; chldata[,1] <- NULL ; tail(chldata,1)
-chldata2 = read.csv("BRA_WILMA_June6-June202019.csv") ; head(chldata2,1)
-chldata = rbind(chldata,chldata2)
-write.csv(chldata, file = "BRA_WILMA.csv")
-
-qdata <- read.csv(url("https://waterdata.usgs.gov/nwis/dv?cb_00010=on&cb_00045=on&cb_00060=on&cb_00095=on&cb_00300=on&cb_00400=on&cb_63680=on&cb_80154=on&cb_80155=on&format=rdb&site_no=01481000&referred_module=sw&period=&begin_date=2018-03-27&end_date=2019-04-04.txt"))
-qdata = read.csv("qdata.csv") 
-```  
-
-Package loads
+###########################
+Package load and retrieval
+###########################
 ```{r,warning=F}
 #necessary packages: 
-pack_list<-list ("ggplot2","openair","dygraphs","xts")
+pack_list<-list ("ggplot2","openair","dygraphs","xts","dataRetrieval","dplyr","forecast")
 for(i in 1:length(pack_list)){
   install.packages(paste("", pack_list[[i]]),repos = "http://cran.us.r-project.org")
 }
 
+install.packages("devtools")
+install.packages("glue")
+install.packages("dataRetrieval", repos=c("http://owi.usgs.gov/R",getOption("repos")))
+library(devtools)
+install_github("USGS-R/dataRetrieval")
 ```
 
+#########################################################################################################
+SESTON Data input from .csv and RESEARCH server. File is named by sensor's name only. File include date, 
+time, battery, temperature, chl(ug/L), gain voltage (change chl column from scientific format to general)
+#########################################################################################################
+```{r setup, include=FALSE}
+setwd("R:/EcosystemsLab/Ecosystems projects/Brandywine/working_data/sensors/cyclops")
+chldata = read.csv("BRA_WILMA.csv") ; chldata[,1] <- NULL ; tail(chldata,1)
+chldata2 = read.csv("BRA_WILMA_May15-Jun262019.csv") ; head(chldata2,1)
+chldata = rbind(chldata,chldata2)
+write.csv(chldata, file = "BRA_WILMA.csv")
+```
+
+##################################################################
+DISCHARGE data input via URL from USGS using dataRetrieval package
+##################################################################
+```{r}
+library(dplyr)
+library(dataRetrieval)#check station code online (usually an 8-15digit numebr)
+
+###checking parameter code
+parameterCdFile <- parameterCdFile
+Cds = filter(parameterCdFile, grepl("Discharge", parameterCdFile$parameter_nm,ignore.case=TRUE))
+
+###Input request specifications:
+siteNo <- "01481000"
+pCode <- "00060"
+start.date <- "2019-03-27"
+end.date <- "2019-06-26"
+
+####retrieve data every 15min
+        BAM_q <- readNWISuv(siteNumbers = siteNo, 
+                            parameterCd = pCode, 
+                            startDate = start.date, 
+                            endDate = end.date) 
+
+####retrieve daily average Q
+        BAM_q_daily <- readNWISdv(siteNumbers = siteNo, 
+                            parameterCd = pCode, 
+                            startDate = start.date, 
+                            endDate = end.date) 
+qdata = BAM_q_daily
+```  
+
+######################################################
 Calculate daily means/max/min from high-frequency data
+######################################################
 ```{r}
-date<-as.Date(chldata$date, format = "%m/%d/%Y")
+library(xts);library(tidyverse)
+
+chldata$date<-as.Date(chldata$date, format = "%m/%d/%Y") #output is YYY-mm-dd
+
+###Group by date for mean,max,and min. this can be done for Temperature too if needed
+      daily_chl_series = chldata %>% group_by(date) %>%
+        summarise_at(vars(chl), funs(mean(., na.rm = TRUE), 
+                                     max(.,na.rm = TRUE), 
+                                     min(.,na.rm = TRUE)))
+```
+
+#####################################################################################
+SESTON Chlorophyll time series
+------using dygraphs interactive: https://www.r-graph-gallery.com/time-series/-------
+#####################################################################################
+```{r}
+library(dygraphs);library(forecast);library(timeSeries)
+
+#interactive plot for daily data
+daily_timeseries_chl = xts(x = daily_chl_series[,-1], order.by = daily_chl_series$date)
+        dygraph(daily_timeseries_chl,xlab = NULL, ylab = "sestonic chl (ug/L)") %>%
+            dySeries(c("min", "mean", "max"))
+
+
+date<-as.Date(chldata$date, format = "%Y-%m-%d")
 date<-as.POSIXlt(date, tz = "America/New_York")
+HF_timeseries_chl = xts(chldata[, -1], order.by=as.POSIXct(date))
 
-mean_daily_chl<-aggregate(chl ~ date, data = chldata, mean)
-max_daily_chl<-aggregate(chl ~ date, data = chldata, max)
-min_daily_chl<-aggregate(chl ~ date, data = chldata, min)
-range_daily_chl<-aggregate(chl ~ date, data = chldata, range)
+#Outlier removal on the high-frequency data
+HF_timeseries_chl = xts(as.vector(stocks$chl), order.by = stocks$date)
+           
+
+
+HF_timeseries_chl_cln = tsoutliers(as.numeric(HF_timeseries_chl$chl))
+
+
+plot(HF_timeseries_chl$chl, ylim =c(0,30))
 
 ```
 
-Seston Chlorophyll time series------using dygraphs interactive: https://www.r-graph-gallery.com/time-series/
-```{r}
-library(dygraphs);library(xts)
-chl_series=cbind(mean_daily_chl,max_daily_chl[,2],min_daily_chl[,2])
-colnames(chl_series)<-c("date","mean","max","min")
-chl_series$date<-as.Date(chl_series$date, format = "%m/%d/%Y") #output is YYY-mm-dd
-timeseries_chl=xts(x = chl_series[,-1], order.by = chl_series$date)
- 
-dygraph(timeseries_chl,xlab = NULL, ylab = "sestonic chl (ug/L)") %>%
-  dySeries(c("min", "mean", "max"))
-```
-
-Q-chl rating curve
+###########################################
+DISCHARGE-SESTON RELATIONSHIP
+###########################################
 ```{r}
 library(ggplot2)
-ratingcurve<-merge(mean_daily_chl,qdata,by = c("date"))
+qdata2 = qdata[,3:4]; colnames(qdata2)<-c("date","Discharge")
+ratingcurve<-merge(daily_chl_series,qdata2,by = c("date"))
+ratingcurve_sub = filter(ratingcurve, mean <= 50 & Discharge <=2000) #To remove abnormal cases or significant outliers
 
-ggplot(ratingcurve, aes(x=Discharge, y=chl)) +
+ggplot(ratingcurve_sub, aes(x=Discharge, y=mean)) +
     geom_point(shape=1,size=3) +    
     geom_smooth(method=lm) +
     xlab("discharge (feet3/s)") +
@@ -65,3 +125,34 @@ ggplot(ratingcurve, aes(x=Discharge, y=chl)) +
     theme_bw()
 ```
 
+###########################################
+DIEL PATTERNS IN SESTON CHL CONCENTRATION
+###########################################
+```{r}
+chldata_withq = inner_join(chldata,qdata2,by = "date")
+chldata_baseflow = filter(chldata_withq, Discharge <=600) #subset only baseflow days
+
+dates=as.list(unique(chldata_baseflow$date))
+diels=list()
+
+###
+for (i in 1:length(dates)){
+  diels[[i]] = filter(chldata_baseflow, date == dates[i])
+}
+      for (i in 1:length(dates)){ 
+        t=diels[[i]]
+        plot(t[,2],t[,5],pch=19,cex=2)
+        }
+
+
+###plot baseflow dynamics
+for (i in 1:length(dates)){
+  t = filter(chldata_baseflow, date == dates[[i]])
+  t$time <- as.POSIXct(strptime(t$time, format="%H:%M:%S"))
+        diels[[i]] = ggplot(data = t, aes(x = time, y = chl_avg)) + geom_point(size =2) +
+          xlab("Time of Day") +
+          ylab("sestonic chl (ug/L)") +
+          theme_bw()
+}
+
+```
