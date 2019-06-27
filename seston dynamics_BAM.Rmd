@@ -7,10 +7,12 @@ output: html_document
 Package loads
 ```{r,warning=F}
 #necessary packages: 
-pack_list<-list ("ggplot2","openair","dygraphs","xts","dataRetrieval","devtools","dplyr")
+pack_list<-list ("ggplot2","openair","dygraphs","xts","dataRetrieval","dplyr")
 for(i in 1:length(pack_list)){
   install.packages(paste("", pack_list[[i]]),repos = "http://cran.us.r-project.org")
 }
+install.packages("devtools")
+install.packages("glue")
 install.packages("dataRetrieval", repos=c("http://owi.usgs.gov/R",getOption("repos")))
 library(devtools)
 install_github("USGS-R/dataRetrieval")
@@ -20,7 +22,7 @@ data input from .csv and RESEARCH server
 file is named by sensor's name only. File include date,time,battery,temperature,chl(ug/L),gain voltage
 remember to change chl column from scientific format to general
 ```{r setup, include=FALSE}
-setwd("C:/Users/admin/Dropbox/working_data/sensors/cyclops")
+setwd("R:/EcosystemsLab/Ecosystems projects/Brandywine/working_data/sensors/cyclops")
 chldata = read.csv("BRA_BAM.csv") ; chldata[,1] <- NULL ; tail(chldata,1)
 chldata2 = read.csv("BRA_BAM_May15-Jun262019.csv") ; head(chldata2,1)
 chldata = rbind(chldata,chldata2)
@@ -33,6 +35,7 @@ library(dplyr)
 library(dataRetrieval)#check station code online (usually an 8-15digit numebr)
 
 ###checking parameter code
+parameterCdFile <- parameterCdFile
 Cds = filter(parameterCdFile, grepl("Discharge", parameterCdFile$parameter_nm,ignore.case=TRUE))
 
 ###Input request specifications:
