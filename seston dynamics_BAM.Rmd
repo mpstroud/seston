@@ -2,7 +2,7 @@
 title: "rawdata input and cleaning"
 author: "MPG"
 date: "April 5, 2019"
-output: html_document
+output: html_document 
 ---
 Package loads
 ```{r,warning=F}
@@ -20,7 +20,7 @@ data input from .csv and RESEARCH server
 file is named by sensor's name only. File include date,time,battery,temperature,chl(ug/L),gain voltage
 remember to change chl column from scientific format to general
 ```{r setup, include=FALSE}
-setwd("R:/EcosystemsLab/Ecosystems projects/Brandywine/working_data/sensors/cyclops")
+setwd("C:/Users/admin/Dropbox/working_data/sensors/cyclops")
 chldata = read.csv("BRA_BAM.csv") ; chldata[,1] <- NULL ; tail(chldata,1)
 chldata2 = read.csv("BRA_BAM_May15-Jun262019.csv") ; head(chldata2,1)
 chldata = rbind(chldata,chldata2)
@@ -31,48 +31,55 @@ data input via URL from USGS using dataRetrieval package
 ```{r}
 library(dplyr)
 library(dataRetrieval)#check station code online (usually an 8-15digit numebr)
-parameterCdFile <- parameterCdFile; names(parameterCdFile) #help guide for parameter code
 
-phosCds <- parameterCdFile[grep("phosphorus",parameterCdFile$parameter_nm, ignore.case=TRUE),]
+###checking parameter code
+Cds = filter(parameterCdFile, grepl("Discharge", parameterCdFile$parameter_nm,ignore.case=TRUE))
 
-nrow(phosCds)
+###Input request specifications:
+siteNo <- "01481000"
+pCode <- "00060"
+start.date <- "2019-03-27"
+end.date <- "2019-06-26"
 
+####retrieve data every 15min
+BAM_q <- readNWISuv(siteNumbers = siteNo, 
+                    parameterCd = pCode, 
+                    startDate = start.date, 
+                    endDate = end.date) 
 
-
-
-qdata = read.table("clipboard",header=T,sep="\t") 
+####retrieve daily average Q
+BAM_q_daily <- readNWISdv(siteNumbers = siteNo, 
+                    parameterCd = pCode, 
+                    startDate = start.date, 
+                    endDate = end.date) 
+qdata = BAM_q_daily
 ```  
 
 Calculate daily means/max/min from high-frequency data
 ```{r}
-date<-as.Date(chldata$date, format = "%m/%d/%Y")
-date<-as.POSIXlt(date, tz = "America/New_York")
-
-mean_daily_chl<-aggregate(chl ~ date, data = chldata, mean)
-max_daily_chl<-aggregate(chl ~ date, data = chldata, max)
-min_daily_chl<-aggregate(chl ~ date, data = chldata, min)
-range_daily_chl<-aggregate(chl ~ date, data = chldata, range)
-
+library(xts);library(tidyverse)
+chldata$date<-as.Date(chldata$date, format = "%m/%d/%Y") #output is YYY-mm-dd
+###Group by date for mean,max,and min. this can be done for Temperature too if needed
+chl_series = chldata %>% group_by(date) %>%
+  summarise_at(vars(chl), funs(mean(., na.rm = TRUE), max(.,na.rm = TRUE), min(.,na.rm = TRUE)))
 ```
 
 Seston Chlorophyll time series------using dygraphs interactive: https://www.r-graph-gallery.com/time-series/
 ```{r}
-library(dygraphs);library(xts)
-chl_series=cbind(mean_daily_chl,max_daily_chl[,2],min_daily_chl[,2])
-colnames(chl_series)<-c("date","mean","max","min")
-chl_series$date<-as.Date(chl_series$date, format = "%m/%d/%Y") #output is YYY-mm-dd
+library(dygraphs)
 timeseries_chl=xts(x = chl_series[,-1], order.by = chl_series$date)
- 
-dygraph(timeseries_chl,xlab = NULL, ylab = "sestonic chl (ug/L)") %>%
-  dySeries(c("min", "mean", "max"))
+        dygraph(timeseries_chl,xlab = NULL, ylab = "sestonic chl (ug/L)") %>%
+            dySeries(c("min", "mean", "max"))
 ```
 
 Q-chl rating curve
 ```{r}
 library(ggplot2)
-ratingcurve<-merge(mean_daily_chl,qdata,by = c("date"))
+qdata2 = qdata[,3:4]; colnames(qdata2)<-c("date","Discharge")
+ratingcurve<-merge(chl_series,qdata2,by = c("date"))
+ratingcurve_sub = filter(ratingcurve, mean <= 50 & Discharge <=2000) #To remove abnormal cases or significant outliers
 
-ggplot(ratingcurve, aes(x=Discharge, y=chl)) +
+ggplot(ratingcurve_sub, aes(x=Discharge, y=mean)) +
     geom_point(shape=1,size=3) +    
     geom_smooth(method=lm) +
     xlab("discharge (feet3/s)") +
@@ -80,3 +87,25 @@ ggplot(ratingcurve, aes(x=Discharge, y=chl)) +
     theme_bw()
 ```
 
+Diel fluctuations in chl & temp
+```{r}
+chldata_withq = inner_join(chldata,qdata2,by = "date")
+chldata_baseflow = filter(chldata_withq, Discharge <=600) #subset only baseflow days
+dates=unique(chldata_baseflow$date)
+diels=list()
+
+###
+for (i in 1:length(dates)){
+  diels[[i]] = filter(chldata_baseflow, date == dates[i])
+}
+
+###plot baseflow dynamics
+for (i in 1:length(dates)){
+  t = filter(chldata_baseflow, date == dates[i])
+  plot(t[,5])
+}
+
+
+
+
+```
