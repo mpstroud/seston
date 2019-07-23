@@ -28,7 +28,7 @@ time, battery, temperature, chl(ug/L), gain voltage (change chl column from scie
 ```{r setup, include=FALSE}
 setwd("R:/EcosystemsLab/Ecosystems projects/Brandywine/working_data/sensors/cyclops")
 chldata = read.csv("BRA_BAM.csv") ; chldata[,1] <- NULL ; tail(chldata,1)
-chldata2 = read.csv("BRA_BAM_May15-Jun262019.csv") ; head(chldata2,1)
+chldata2 = read.csv("BRA_BAM_Jul3-Jul222019.csv") ; head(chldata2,1)
 chldata = rbind(chldata,chldata2)
 write.csv(chldata, file = "BRA_BAM.csv")
 ```
@@ -48,7 +48,7 @@ Cds = filter(parameterCdFile, grepl("Discharge", parameterCdFile$parameter_nm,ig
 siteNo <- "01481000"
 pCode <- "00060"
 start.date <- "2019-03-27"
-end.date <- "2019-06-26"
+end.date <- "2019-07-22"
 
 ####retrieve data every 15min
         BAM_q <- readNWISuv(siteNumbers = siteNo, 
@@ -91,21 +91,6 @@ daily_timeseries_chl = xts(x = daily_chl_series[,-1], order.by = daily_chl_serie
         dygraph(daily_timeseries_chl,xlab = NULL, ylab = "sestonic chl (ug/L)") %>%
             dySeries(c("min", "mean", "max"))
 
-
-date<-as.Date(chldata$date, format = "%Y-%m-%d")
-date<-as.POSIXlt(date, tz = "America/New_York")
-HF_timeseries_chl = xts(chldata[, -1], order.by=as.POSIXct(date))
-
-#Outlier removal on the high-frequency data
-HF_timeseries_chl = xts(as.vector(stocks$chl), order.by = stocks$date)
-           
-
-
-HF_timeseries_chl_cln = tsoutliers(as.numeric(HF_timeseries_chl$chl))
-
-
-plot(HF_timeseries_chl$chl, ylim =c(0,30))
-
 ```
 
 ###########################################
@@ -115,7 +100,8 @@ DISCHARGE-SESTON RELATIONSHIP
 library(ggplot2)
 qdata2 = qdata[,3:4]; colnames(qdata2)<-c("date","Discharge")
 ratingcurve<-merge(daily_chl_series,qdata2,by = c("date"))
-ratingcurve_sub = filter(ratingcurve, mean <= 50 & Discharge <=2000) #To remove abnormal cases or significant outliers
+ratingcurve_sub = filter(ratingcurve, mean <=50 
+                                    & Discharge <=2000) #To remove abnormal cases or significant outliers
 
 ggplot(ratingcurve_sub, aes(x=Discharge, y=mean)) +
     geom_point(shape=1,size=3) +    
