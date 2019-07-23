@@ -15,7 +15,6 @@ for(i in 1:length(pack_list)){
 }
 
 install.packages("devtools")
-install.packages("glue")
 install.packages("dataRetrieval", repos=c("http://owi.usgs.gov/R",getOption("repos")))
 library(devtools)
 install_github("USGS-R/dataRetrieval")
