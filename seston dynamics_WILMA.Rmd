@@ -93,7 +93,7 @@ DISCHARGE-SESTON RELATIONSHIP
 library(ggplot2)
 qdata2 = qdata[,3:4]; colnames(qdata2)<-c("date","Discharge")
 ratingcurve<-merge(daily_chl_series,qdata2,by = c("date"))
-ratingcurve_sub = filter(ratingcurve, mean <= 50 & Discharge <=2000) #To remove abnormal cases or significant outliers
+ratingcurve_sub = filter(ratingcurve, Discharge < 2000) #To remove abnormal cases or significant outliers
 
 ggplot(ratingcurve_sub, aes(x=Discharge, y=mean)) +
     geom_point(shape=1,size=3) +    
