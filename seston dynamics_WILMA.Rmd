@@ -9,7 +9,7 @@ Package load and retrieval
 ###########################
 ```{r,warning=F}
 #necessary packages: 
-pack_list<-list ("ggplot2","openair","dygraphs","xts","dataRetrieval","dplyr","forecast")
+pack_list<-list ("ggplot2","openair","dygraphs","xts","dataRetrieval","dplyr","forecast", "lubridate")
 for(i in 1:length(pack_list)){
   p <- pack_list[[i]]
   install.packages(p,repos = "https://cran.rstudio.com",dependencies = TRUE)
@@ -90,7 +90,7 @@ daily_timeseries_chl = xts(x = daily_chl_series[,-1], order.by = daily_chl_serie
 DISCHARGE-SESTON RELATIONSHIP
 ###########################################
 ```{r}
-library(ggplot2)
+detach("package:dplyr"); library(dplyr); library(ggplot2); library(lubridate)
 qdata2 = qdata[,3:4]; colnames(qdata2)<-c("date","Discharge")
 ratingcurve<-merge(daily_chl_series,qdata2,by = c("date"))
 ratingcurve_sub = filter(ratingcurve, Discharge < 2000) #To remove abnormal cases or significant outliers
@@ -103,31 +103,57 @@ ggplot(ratingcurve_sub, aes(x=Discharge, y=mean)) +
     theme_bw()
 ```
 
-###########################################
-DIEL PATTERNS IN SESTON CHL CONCENTRATION
-###########################################
+##########################################################
+DIEL PATTERNS IN SESTON CHL CONCENTRATION DURING BASEFLOW
+Using 'lubridate' package for time/date data 
+##########################################################
 ```{r}
 chldata_withq = inner_join(chldata,qdata2,by = "date")
 chldata_baseflow = filter(chldata_withq, Discharge <=600) #subset only baseflow days
+chldata_baseflow$date<-as.factor(chldata_baseflow)
 
-dates=as.list(unique(chldata_baseflow$date))
-diels=list()
+k <- ggplot(data = chldata_baseflow, aes(x = temp, y = chl)) + geom_line() +
+                                 xlab("Time of Day") +
+                                   ylab("sestonic chl (ug/L)") +
+                                    theme_bw()
+                      
+k + facet_grid(rows = vars(Discharge))
 
-###
-for (i in 1:length(dates)){
-  diels[[i]] = filter(chldata_baseflow, date == dates[i])
-}
-      for (i in 1:length(dates)){ 
-        t=diels[[i]]
-        plot(t[,2],t[,5],pch=19,cex=2)
-        }
 
+dtime<-chron(dates=as.character(oxydata$date), times=as.character(oxydata$time))
+
+ oxydata$dtime<-dtime
+
+#generate a list of dates with baseflow conditions 
+dates=as.list(unique(chldata_baseflow$date)) 
+diels=list() #empty list 
+
+  for (i in 1:length(dates)){
+    diels[[i]] = filter(chldata_baseflow, date == dates[i])
+    }
+     for (i in 1:length(diels)){ 
+      diels$time <- as.POSIXct(strptime(t$time, format="%H:%M:%S"))
+      ggplot(data = t, aes(x = time, y = chl)) + geom_line() +
+                                 xlab("Time of Day") +
+                                   ylab("sestonic chl (ug/L)") +
+                                    theme_bw()
+                      }
+
+
+
+ for (i in 1:length(dates)){
+      diels[[i]] = filter(chldata_baseflow, date == dates[i])
+    }
+          for (i in 1:length(dates)){ 
+           t=diels[[i]]
+           plot(t[,2],t[,5],pch=19,cex=2)
+          }
 
 ###plot baseflow dynamics
 for (i in 1:length(dates)){
   t = filter(chldata_baseflow, date == dates[[i]])
   t$time <- as.POSIXct(strptime(t$time, format="%H:%M:%S"))
-        diels[[i]] = ggplot(data = t, aes(x = time, y = chl_avg)) + geom_point(size =2) +
+        ggplot(data = t, aes(x = time, y = chl)) + geom_line() +
           xlab("Time of Day") +
           ylab("sestonic chl (ug/L)") +
           theme_bw()
