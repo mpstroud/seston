@@ -25,18 +25,19 @@ SESTON Data input from .csv and RESEARCH server. File is named by sensor's name 
 time, battery, temperature, chl(ug/L), gain voltage (change chl column from scientific format to general)
 #########################################################################################################
 ```{r setup, include=FALSE}
+library(dplyr)
 setwd("R:/EcosystemsLab/Ecosystems projects/Brandywine/working_data/sensors/cyclops")
-chldata = read.csv("BRA_BAM.csv") ; chldata[,1] <- NULL ; tail(chldata,1)
+chldata = read.csv("BRA_BAM.csv") ; chldata %>% select (-c(X)) ; tail(chldata,1)
 chldata2 = read.csv("BRA_BAM_Jul22-Jul252019.csv") ; head(chldata2,1)
 chldata = rbind(chldata,chldata2)
 write.csv(chldata, file = "BRA_BAM.csv")
+chldata$datetime<- as.vector(as.POSIXct(paste(chldata$date, chldata$time), format="%m/%d/%Y %H:%M:%S", tz="EST"))
 ```
 
 ##################################################################
 DISCHARGE data input via URL from USGS using dataRetrieval package
 ##################################################################
 ```{r}
-library(dplyr)
 library(dataRetrieval)#check station code online (usually an 8-15digit numebr)
 
 ###checking parameter code
@@ -47,19 +48,20 @@ Cds = filter(parameterCdFile, grepl("Discharge", parameterCdFile$parameter_nm,ig
 siteNo <- "01481000"
 pCode <- "00060"
 start.date <- "2019-03-27"
-end.date <- "2019-07-25" #----------------------------------------------change end date accordingly
+end.date <- "2019-08-04" #----------------------------------------------change end date accordingly
 
 ####retrieve data every 15min
         BAM_q <- readNWISuv(siteNumbers = siteNo, 
                             parameterCd = pCode, 
                             startDate = start.date, 
-                            endDate = end.date) 
+                            endDate = end.date,tz = "EST") 
 
 ####retrieve daily average Q
         BAM_q_daily <- readNWISdv(siteNumbers = siteNo, 
                             parameterCd = pCode, 
                             startDate = start.date, 
                             endDate = end.date) 
+qdata15 = BAM_q
 qdata = BAM_q_daily
 ```  
 
