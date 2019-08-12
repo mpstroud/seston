@@ -27,11 +27,19 @@ time, battery, temperature, chl(ug/L), gain voltage (change chl column from scie
 ```{r setup, include=FALSE}
 library(dplyr)
 setwd("R:/EcosystemsLab/Ecosystems projects/Brandywine/working_data/sensors/cyclops")
-chldata = read.csv("BRA_BAM.csv") ; chldata %>% select (-c(X)) ; tail(chldata,1)
+chldata = read.csv("BRA_BAM.csv") ; chldata = select (chldata,-c(datetime)) ; tail(chldata,1)
 chldata2 = read.csv("BRA_BAM_Jul22-Jul252019.csv") ; head(chldata2,1)
 chldata = rbind(chldata,chldata2)
 write.csv(chldata, file = "BRA_BAM.csv")
 chldata$datetime<- as.vector(as.POSIXct(paste(chldata$date, chldata$time), format="%m/%d/%Y %H:%M:%S", tz="EST"))
+```
+
+#########################################################################################################
+Fill data gaps with MARSS
+########################################################################################################
+```{r}
+
+
 ```
 
 ##################################################################
@@ -79,10 +87,11 @@ chldata$date<-as.Date(chldata$date, format = "%m/%d/%Y") #output is YYY-mm-dd
 ###Group by date for mean,max,and min. this can be done for Temperature too if needed
       daily_chl_series = chldata %>% group_by(date) %>%
         summarise_at(vars(chl), funs(mean(., na.rm = TRUE), 
-                                     max(.,na.rm = TRUE), 
-                                     min(.,na.rm = TRUE)))
+                                     (mean(., na.rm = TRUE) + sd(.,na.rm = TRUE)*1.96), 
+                                      mean(., na.rm = TRUE) - sd(.,na.rm = TRUE)*1.96))
 #interactive plot for daily data
-daily_timeseries_chl = xts(x = daily_chl_series[,-1], order.by = daily_chl_series$date)
+colnames(daily_chl_series) <- c("date","mean","max","min")
+  daily_timeseries_chl = xts(x = daily_chl_series[,-1], order.by = daily_chl_series$date)
         dygraph(daily_timeseries_chl,xlab = NULL, ylab = "sestonic chl (ug/L)") %>%
             dySeries(c("min", "mean", "max"))
 
