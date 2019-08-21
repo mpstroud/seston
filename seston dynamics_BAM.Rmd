@@ -9,15 +9,11 @@ Package load and retrieval
 ###########################
 ```{r,warning=F}
 #necessary packages: 
-pack_list<-list ("ggplot2","openair","dygraphs","xts","dataRetrieval","dplyr","forecast","glue")
+pack_list<-list ("ggplot2","openair","dygraphs","xts","dataRetrieval","dplyr","forecast","glue","dataRetrieval","devtools","MARSS")
 for(i in 1:length(pack_list)){
   p <- pack_list[[i]]
   install.packages(p,repos = "https://cran.rstudio.com",dependencies = TRUE)
 }
-
-install.packages("devtools")
-install.packages("dataRetrieval", repos=c("http://owi.usgs.gov/R",getOption("repos")))
-library(devtools)
 ```
 
 #########################################################################################################
@@ -38,6 +34,15 @@ chldata$datetime<- as.vector(as.POSIXct(paste(chldata$date, chldata$time), forma
 Fill data gaps with MARSS
 ########################################################################################################
 ```{r}
+library(MARSS)
+
+
+
+
+
+
+
+
 
 
 ```
@@ -55,8 +60,8 @@ Cds = filter(parameterCdFile, grepl("Discharge", parameterCdFile$parameter_nm,ig
 ###Input request specifications:
 siteNo <- "01481000"
 pCode <- "00060"
-start.date <- "2019-03-27"
-end.date <- "2019-08-04" #----------------------------------------------change end date accordingly
+start.date <- "2019-03-28"
+end.date <- "2019-07-25" #----------------------------------------------change end date accordingly
 
 ####retrieve data every 15min
         BAM_q <- readNWISuv(siteNumbers = siteNo, 
@@ -101,13 +106,12 @@ colnames(daily_chl_series) <- c("date","mean","max","min")
 DISCHARGE-SESTON RELATIONSHIP
 ###########################################
 ```{r}
-library(ggplot2)
+library(ggplot2); detach(package:dplyr) ; library(dplyr)
 qdata2 = qdata[,3:4]; colnames(qdata2)<-c("date","Discharge")
 ratingcurve<-merge(daily_chl_series,qdata2,by = c("date"))
-ratingcurve_sub = filter(ratingcurve, mean <=50 
-                                    & Discharge <=2000) #To remove abnormal cases or significant outliers
+ratingcurve_sub = filter(ratingcurve, Discharge <=2000) #To remove abnormal cases or significant outliers
 
-ggplot(ratingcurve_sub, aes(x=Discharge, y=mean)) +
+ggplot(ratingcurve_sub, aes(x=log(Discharge), y=log(mean))) +
     geom_point(shape=1,size=3) +    
     geom_smooth(method=lm) +
     xlab("discharge (feet3/s)") +
@@ -119,30 +123,29 @@ ggplot(ratingcurve_sub, aes(x=Discharge, y=mean)) +
 DIEL PATTERNS IN SESTON CHL CONCENTRATION
 ###########################################
 ```{r}
+#subset only baseflow days, threshold can be changed as neededed
+                                                                baseflowQ<- 580
 chldata_withq = inner_join(chldata,qdata2,by = "date")
-chldata_baseflow = filter(chldata_withq, Discharge <=600) #subset only baseflow days
+chldata_baseflow = filter(chldata_withq, Discharge <=baseflowQ) 
+    #count total number of days and prepare plot grid
+    dates=as.list(unique(chldata_baseflow$date))
+    diels=list() ; Nd<-length(dates)
+    par(mfrow = c(round(sqrt(Nd))+1,round(sqrt(Nd))+1))
+    par(cex = 0.6)
+    par(mar = c(2, 2, 2, 2), oma = c(1, 1, 1, 1))
 
-dates=as.list(unique(chldata_baseflow$date))
-diels=list()
-
-###
-for (i in 1:length(dates)){
-  diels[[i]] = filter(chldata_baseflow, date == dates[i])
-}
-      for (i in 1:length(dates)){ 
-        t=diels[[i]]
-        plot(t[,2],t[,5],pch=19,cex=2)
-        }
-
-
-###plot baseflow dynamics
-for (i in 1:length(dates)){
-  t = filter(chldata_baseflow, date == dates[[i]])
-  t$time <- as.POSIXct(strptime(t$time, format="%H:%M:%S"))
-        diels[[i]] = ggplot(data = t, aes(x = time, y = chl_avg)) + geom_point(size =2) +
-          xlab("Time of Day") +
-          ylab("sestonic chl (ug/L)") +
-          theme_bw()
-}
-
+        #examine diel patterns in chl conc.
+          for (i in 1:length(dates)){
+            diels[[i]] = filter(chldata_baseflow, date == dates[i])
+                 }
+                for (i in 1:length(dates)){ 
+                  t=diels[[i]]
+                  dateN<-t[1,1]
+                  plot(t[,5],
+                  main=paste0(dateN),
+                  ylab="chl(ug/L)",
+                  xlab="min since midnight",
+                  type="l",
+                  col="green")
+                                }
 ```
