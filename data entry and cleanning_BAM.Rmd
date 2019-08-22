@@ -3,18 +3,22 @@ title: "data entry and cleanning"
 author: "MPG"
 date: "April 5, 2019"
 output: html_document 
+
+README: Section order is relevant, prompt errors may be caused by failing to run previous code sections
 ---
 ###########################
 Package load and retrieval
 ###########################
 ```{r,warning=F}
 #necessary packages: 
-pack_list<-list ("ggplot2","openair","dygraphs","xts","dataRetrieval","dplyr","forecast","glue","dataRetrieval","devtools","DataCombine","lubridate")
+pack_list<-list ("ggplot2","openair","dygraphs","xts","dataRetrieval","dplyr","forecast","glue","dataRetrieval","devtools","DataCombine","lubridate","zoo")
 for(i in 1:length(pack_list)){
   p <- pack_list[[i]]
   install.packages(p,repos = "https://cran.rstudio.com",dependencies = TRUE)
 }
 ```
+
+
 
 #########################################################################################################
 SESTON Data input from .csv and RESEARCH server. 
@@ -26,17 +30,22 @@ File include date, time, battery, temperature, chl(ug/L), gain voltage (change c
 #########################################################################################################
 ```{r setup, include=FALSE}
 library(dplyr)
-setwd("C:/Users/admin/iCloudDrive")
+
+setwd("R:/EcosystemsLab/Ecosystems projects/Brandywine/working_data/sensors/cyclops")
 chldata = read.csv("BRA_BAM.csv") ; chldata[,1] <- NULL ; chldata = select (chldata,-c(datetime)) ; tail(chldata,1)
 chldata2 = read.csv("BRA_BAM_Jul22-Jul252019.csv") ; head(chldata2,1)
 chldata = rbind(chldata,chldata2)
 write.csv(chldata, file = "BRA_BAM.csv")
 chldata$datetime<- as.vector(as.POSIXct(paste(chldata$date, chldata$time), format="%m/%d/%Y %H:%M:%S", tz="EST"))
+#chldata contains, among other variables, chlorophyll concentration, temperature, and a Unix datetime column
 ```
 
-##################################################################
-DISCHARGE data input via URL from USGS using dataRetrieval package
-##################################################################
+
+
+##############################################################################
+DISCHARGE data input via URL from USGS station#01481500 in Chads Ford (Museum) 
+using dataRetrieval package
+##############################################################################
 ```{r}
 library(dataRetrieval)#check station code online (usually an 8-15digit numebr)
 
@@ -65,14 +74,44 @@ qdata15 = BAM_q
 qdata = BAM_q_daily
 ```  
 
+
+
+###########################################
+DISCHARGE-SESTON RELATIONSHIP
+###########################################
+```{r}
+library(ggplot2)
+detach(package:dplyr) ; library(dplyr)
+
+qdata2 = qdata[,3:4]; colnames(qdata2)<-c("date","Discharge")
+ratingcurve<-merge(daily_chl_series,qdata2,by = c("date"))
+ratingcurve_sub = filter(ratingcurve, Discharge <=2000) #To remove abnormal cases or significant outliers
+
+ggplot(ratingcurve_sub, aes(x=log(Discharge), y=log(mean))) +
+    geom_point(shape=1,size=3) +    
+    geom_smooth(method=lm) +
+    xlab("discharge (feet3/s)") +
+    ylab("sestonic chl (ug/L)") +
+    theme_bw()
+```
+
+
+
 ######################################################
 DAILY TIME SERIES 
+
 1) calculate daily means/max/min from high-frequency data
 2) plto daily data ------using dygraphs interactive: 
 https://www.r-graph-gallery.com/time-series/-------
+
 ######################################################
 ```{r}
-library(xts);library(tidyverse);library(dygraphs);library(forecast);library(timeSeries);library(glue)
+library(xts)
+library(tidyverse)
+library(dygraphs)
+library(forecast)
+library(timeSeries)
+library(glue)
 
 chldata$date<-as.Date(chldata$date, format = "%m/%d/%Y") #output is YYY-mm-dd
 
@@ -90,59 +129,64 @@ colnames(daily_chl_series) <- c("date","mean","max","min")
 
 ```
 
-###########################################
-DISCHARGE-SESTON RELATIONSHIP
-###########################################
-```{r}
-library(ggplot2); detach(package:dplyr) ; library(dplyr)
-qdata2 = qdata[,3:4]; colnames(qdata2)<-c("date","Discharge")
-ratingcurve<-merge(daily_chl_series,qdata2,by = c("date"))
-ratingcurve_sub = filter(ratingcurve, Discharge <=2000) #To remove abnormal cases or significant outliers
 
-ggplot(ratingcurve_sub, aes(x=log(Discharge), y=log(mean))) +
-    geom_point(shape=1,size=3) +    
-    geom_smooth(method=lm) +
-    xlab("discharge (feet3/s)") +
-    ylab("sestonic chl (ug/L)") +
-    theme_bw()
-```
 
 #########################################################################################################
-Moving average of time series
+MOVING AVERAGE SMOOTHING OF ORIGINAL TIME SERIES
+
+1. Generate a merged dataset that contains chl conc. averaged every 15min and paired with discharge data
+
 ########################################################################################################
 ```{r}
 library(DataCombine)
 library(lubridate)
+library(zoo)
 
+######################################15min averaged dataset
 averaged_df<- select(chldata, chl)
 a <-as.POSIXct(paste(chldata$date, chldata$time), format="%m/%d/%Y %H:%M:%S", tz="EST")
-averaged_df$date <-as.vector(as.POSIXlt(round(as.double(a)/(15*60))*(15*60),origin=(as.POSIXlt('1970-01-01')), tz="EST"))
+averaged_df$date <-as.vector(as.POSIXlt(round(as.double(a)/(15*60))*(15*60),
+                                        origin=(as.POSIXlt('1970-01-01')), 
+                                        tz="EST"))
 
+#convert date from 'POSIXlt' class to 'double' to allow aggregation with dplyr
+averaged_df$date <- as.double(averaged_df$date) 
+
+#aggregate by date 
+dataset.15min = averaged_df %>%
+  group_by(date) %>%
+  summarize(chl.avg = mean(chl, na.rm = TRUE)) 
+dataset.15min <- dataset.15min[1:11424,] #so only complete days are selected (3/28/2019 - 7/24/2019)
+dataset.15min$date <- as.POSIXct(dataset.15min$date, format="%m/%d/%Y %H:%M:%S", 
+                                           origin=(as.POSIXlt('1970-01-01')),
+                                           tz="EST")
+
+#join with USGS data
 Q = qdata15[,3:4]; colnames(Q)<-c("date","Discharge")
+Q <- Q[5:11420,] ; rownames(Q) <- seq(length=nrow(Q)) 
 Q$date <- as.POSIXct(Q$date, format="%m/%d/%Y %H:%M:%S", tz="EST")
 
-PROBA = Q %>% left_join(averaged_df,by = "date")
-  
-  
-  aggregate(x = averaged_df$chl, 
-            by = list(unique.dates = averaged_df$dates), 
-            FUN = mean)
+#IF date column length is not the same we must find which dates are missing
+#This takes a while but works. Once identified, use the information to double check the 'right_join' result done afterwards
+for (i in 1:length(dataset.15min$date)) {
+  if(is.element(dataset.15min[i,1],unlist(Q$date))){
+    } else {
+       print(dataset.15min[i,1]) }
+}
 
-averaged_df = chldata %>%
-  group_by(date) %>%
-  summarize(chl = mean(chl, na.rm = TRUE))
-
-aggregate()
-head(chldata_mavg, 75)
-
-chl.conc = chldata_mavg[c(-1,-2),8] ; length(chl.conc)
-Q = qdata15 ; length(Q)
+dataset.15min <- right_join(Q,dataset.15min,by = "date")
+plot(dataset.15min$Discharge,dataset.15min$chl.avg)
 
 ```
 
-###########################################
-DIEL PATTERNS IN SESTON CHL CONCENTRATION
-###########################################
+
+
+###########################################################################################
+DIEL PATTERNS IN SESTON CHL CONCENTRATION DURING BASEFLOW
+Using 'lubridate' package for time/date data 
+
+The goal is to plot daily patterns for baseflow/stormflow and get a first visual inspection
+###########################################################################################
 ```{r}
 #subset only baseflow days, threshold can be changed as neededed
                                                                 baseflowQ<- 580
@@ -169,4 +213,49 @@ chldata_baseflow = filter(chldata_withq, Discharge <=baseflowQ)
                   type="l",
                   col="green")
                                 }
+```
+
+
+
+###########################################################################################
+DIEL PATTERNS IN SESTON CHL CONCENTRATION VS FLOW @BASEFLOW and STORMFLOW
+
+Using 'lubridate' package for time/date data 
+The goal is to plot daily patterns for baseflow/stormflow and get a first visual inspection
+
+###########################################################################################
+```{r}
+#flow threshold
+                  thresholdQ<- 850
+subset.dataset.15min = filter(dataset.15min, Discharge >=thresholdQ) 
+subset.dataset.15min$Date <- as.Date(subset.dataset.15min$date) 
+subset.dataset.15min$Time <- format(as.POSIXct(subset.dataset.15min$date) ,format = "%H:%M:%S") 
+
+    #count total number of days and prepare plot grid
+    dates=as.list(unique(subset.dataset.15min$Date))
+    diels=list() ; Nd<-length(dates)
+    par(mfrow = c(round(sqrt(Nd))+1,round(sqrt(Nd))+1))
+    par(cex = 0.6)
+    par(mar = c(2, 2, 2, 2), oma = c(1, 1, 1, 1))
+
+        #examine diel patterns in chl conc.
+          for (i in 1:length(dates)){
+            diels[[i]] = filter(subset.dataset.15min, Date == dates[i])
+                 }
+                for (i in 1:length(dates)){ 
+                  t=diels[[i]]
+                  dateN<-t[1,1]
+                  plot(t[,2], t[,3],
+                  main=paste0(dateN),
+                  ylab="chl(ug/L)",
+                  xlab="discharge",
+                  type="p",
+                  col="green")
+                }
+    
+par (mfrow = c(1,1))
+temp_plot <- dataset.15min[2165:2520,]    
+plot(temp_plot$Discharge,temp_plot$chl.avg)
+write.csv(temp_plot, file = "temp_plot4.csv")
+    
 ```
