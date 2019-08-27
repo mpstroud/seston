@@ -1,0 +1,28 @@
+---
+title: "Data entry, cleaning, and working datasets generation"
+output: html_notebook
+editor_options: 
+  chunk_output_type: inline
+
+README: Section order is relevant, prompt errors may be caused by failing to run previous code sections
+
+---
+###########################
+Package load and retrieval
+###########################
+```{r,warning=F}
+#necessary packages: 
+pack_list<-list ("xts","dataRetrieval","dplyr","dataRetrieval","devtools","DataCombine","lubridate","zoo")
+for(i in 1:length(pack_list)){
+  p <- pack_list[[i]]
+  install.packages(p,repos = "https://cran.rstudio.com",dependencies = TRUE)
+}
+```
+
+################################################
+The script will take the upcoming file and:
+1) add it to the aggregated 5min dataset (following istructions in 'readme' file about file names)
+2) download discharge data from USGS for the site and date period
+3) generate a 15min averaged dataset with chl, temp, and Q data
+4) generate a BASEFLOW 15min averaged dataset with chl, temp, and Q data
+5) generate a STORMFLOW 15min averaged dataset with chl, temp, and Q data

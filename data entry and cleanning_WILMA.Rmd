@@ -143,7 +143,7 @@ library(zoo)
 
 ######################################15min averaged dataset
 averaged_df<- select(chldata, chl)
-a <-as.POSIXct(paste(chldata$date, chldata$time), format="%m/%d/%Y %H:%M:%S", tz="EST")
+a <- as.vector(chldata$datetime)
 averaged_df$date <-as.vector(as.POSIXlt(round(as.double(a)/(15*60))*(15*60),
                                         origin=(as.POSIXlt('1970-01-01')), 
                                         tz="EST"))
@@ -155,18 +155,24 @@ averaged_df$date <- as.double(averaged_df$date)
 dataset.15min = averaged_df %>%
   group_by(date) %>%
   summarize(chl.avg = mean(chl, na.rm = TRUE)) 
-dataset.15min <- dataset.15min[1:11424,] #so only complete days are selected (3/28/2019 - 7/24/2019)
+#reformat date back to 
 dataset.15min$date <- as.POSIXct(dataset.15min$date, format="%m/%d/%Y %H:%M:%S", 
                                            origin=(as.POSIXlt('1970-01-01')),
                                            tz="EST")
+#subset so only complete days are selected (3/28/2019 - 8/22/2019)
+dataset.15min <- dataset.15min[1:14208,] 
 
 #join with USGS data
 Q = qdata15[,3:4]; colnames(Q)<-c("date","Discharge")
-Q <- Q[5:11420,] ; rownames(Q) <- seq(length=nrow(Q)) 
+#reformat to datetime format 
 Q$date <- as.POSIXct(Q$date, format="%m/%d/%Y %H:%M:%S", tz="EST")
+#subset so only complete days are selected (3/28/2019 - 8/22/2019)
+Q <- Q[5:14204,] ; rownames(Q) <- seq(length=nrow(Q)) #adjust as needed
+
+
 
 #IF date column length is not the same we must find which dates are missing
-#This takes a while but works. Once identified, use the information to double check the 'right_join' result done afterwards
+#This takes a while but works. Once identified, use the information to double check the 'right_join' results. The dates identified should have NA in the final dataset
 for (i in 1:length(dataset.15min$date)) {
   if(is.element(dataset.15min[i,1],unlist(Q$date))){
     } else {
