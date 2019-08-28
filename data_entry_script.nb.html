@@ -176,21 +176,49 @@ $(document).ready(function () {
 
 
 <!-- rnb-text-begin -->
-<div id="section" class="section level27">
+<p>The script will do the following: 1) add the most recent it to the aggregated 5min dataset (following istructions in ‘readme’ file about file names) 2) download discharge data from USGS for the site and date period 3) generate a 15min averaged dataset with chl, temp, and Q data 4) generate a BASEFLOW 15min averaged dataset with chl, temp, and Q data 5) generate a STORMFLOW 15min averaged dataset with chl, temp, and Q data</p>
+<div id="section" class="section level59">
 <p></p>
-<p>Package load and retrieval ###########################</p>
+<p>Modifiy the following information before running the script</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZGlyZWN0b3J5ID0gXCJDOlxcVXNlcnNcXGFkbWluXFxpQ2xvdWREcml2ZVxcY3ljbG9wc1wiXG5cbmBgYCJ9 -->
+<pre class="r"><code>directory = &quot;C:\Users\admin\iCloudDrive\cyclops&quot;
+</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3I6ICdcXFUnIHVzZWQgd2l0aG91dCBoZXggZGlnaXRzIGluIGNoYXJhY3RlciBzdHJpbmcgc3RhcnRpbmcgXCJcIkM6XFxVXCJcbiJ9 -->
+<pre><code>Error: '\U' used without hex digits in character string starting &quot;&quot;C:\U&quot;</code></pre>
+<!-- rnb-output-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
-<div id="section-1" class="section level48">
-<p></p>
-<p>The script will take the upcoming file and: 1) add it to the aggregated 5min dataset (following istructions in ‘readme’ file about file names) 2) download discharge data from USGS for the site and date period 3) generate a 15min averaged dataset with chl, temp, and Q data 4) generate a BASEFLOW 15min averaged dataset with chl, temp, and Q data 5) generate a STORMFLOW 15min averaged dataset with chl, temp, and Q data</p>
 <!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc2V0d2QoXCJDOi9Vc2Vycy9hZG1pbi9pQ2xvdWREcml2ZS9jeWNsb3BzL1wiKVxuYGBgIn0= -->
+<pre class="r"><code>setwd(&quot;C:/Users/admin/iCloudDrive/cyclops/&quot;)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiVGhlIHdvcmtpbmcgZGlyZWN0b3J5IHdhcyBjaGFuZ2VkIHRvIEM6L1VzZXJzL2FkbWluL2lDbG91ZERyaXZlL2N5Y2xvcHMgaW5zaWRlIGEgbm90ZWJvb2sgY2h1bmsuIFRoZSB3b3JraW5nIGRpcmVjdG9yeSB3aWxsIGJlIHJlc2V0IHdoZW4gdGhlIGNodW5rIGlzIGZpbmlzaGVkIHJ1bm5pbmcuIFVzZSB0aGUga25pdHIgcm9vdC5kaXIgb3B0aW9uIGluIHRoZSBzZXR1cCBjaHVuayB0byBjaGFuZ2UgdGhlIHdvcmtpbmcgZGlyZWN0b3J5IGZvciBub3RlYm9vayBjaHVua3MuXG4ifQ== -->
+<pre><code>The working directory was changed to C:/Users/admin/iCloudDrive/cyclops inside a notebook chunk. The working directory will be reset when the chunk is finished running. Use the knitr root.dir option in the setup chunk to change the working directory for notebook chunks.</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
 </div>
+<div id="section-1" class="section level56">
+<p></p>
+<p>Run the script; knit so partial results can be assessed<br />
+########################################################</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuY2hsZGF0YSA9IHJlYWQuY3N2KGFnZ3JlZ2ZpbGUpIDsgY2hsZGF0YVssMV0gPC0gTlVMTCA7IGNobGRhdGEgPSBzZWxlY3QgKGNobGRhdGEsLWMoZGF0ZXRpbWUpKSA7IHRhaWwoY2hsZGF0YSwxKVxuXG5gYGAifQ== -->
+<pre class="r"><code>chldata = read.csv(aggregfile) ; chldata[,1] &lt;- NULL ; chldata = select (chldata,-c(datetime)) ; tail(chldata,1)
+</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiY2Fubm90IG9wZW4gZmlsZSAnQlJBX0JBTS5jc3YnOiBObyBzdWNoIGZpbGUgb3IgZGlyZWN0b3J5RXJyb3IgaW4gZmlsZShmaWxlLCBcInJ0XCIpIDogY2Fubm90IG9wZW4gdGhlIGNvbm5lY3Rpb25cbiJ9 -->
+<pre><code>cannot open file 'BRA_BAM.csv': No such file or directoryError in file(file, &quot;rt&quot;) : cannot open the connection</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
 </div>
 
-<div id="rmd-source-code">LS0tDQp0aXRsZTogIkRhdGEgZW50cnksIGNsZWFuaW5nLCBhbmQgd29ya2luZyBkYXRhc2V0cyBnZW5lcmF0aW9uIg0Kb3V0cHV0OiBodG1sX25vdGVib29rDQplZGl0b3Jfb3B0aW9uczogDQogIGNodW5rX291dHB1dF90eXBlOiBpbmxpbmUNCg0KUkVBRE1FOiBTZWN0aW9uIG9yZGVyIGlzIHJlbGV2YW50LCBwcm9tcHQgZXJyb3JzIG1heSBiZSBjYXVzZWQgYnkgZmFpbGluZyB0byBydW4gcHJldmlvdXMgY29kZSBzZWN0aW9ucw0KDQotLS0NCiMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIw0KUGFja2FnZSBsb2FkIGFuZCByZXRyaWV2YWwNCiMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIw0KYGBge3Isd2FybmluZz1GfQ0KI25lY2Vzc2FyeSBwYWNrYWdlczogDQpwYWNrX2xpc3Q8LWxpc3QgKCJ4dHMiLCJkYXRhUmV0cmlldmFsIiwiZHBseXIiLCJkYXRhUmV0cmlldmFsIiwiZGV2dG9vbHMiLCJEYXRhQ29tYmluZSIsImx1YnJpZGF0ZSIsInpvbyIpDQpmb3IoaSBpbiAxOmxlbmd0aChwYWNrX2xpc3QpKXsNCiAgcCA8LSBwYWNrX2xpc3RbW2ldXQ0KICBpbnN0YWxsLnBhY2thZ2VzKHAscmVwb3MgPSAiaHR0cHM6Ly9jcmFuLnJzdHVkaW8uY29tIixkZXBlbmRlbmNpZXMgPSBUUlVFKQ0KfQ0KYGBgDQoNCiMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIw0KVGhlIHNjcmlwdCB3aWxsIHRha2UgdGhlIHVwY29taW5nIGZpbGUgYW5kOg0KMSkgYWRkIGl0IHRvIHRoZSBhZ2dyZWdhdGVkIDVtaW4gZGF0YXNldCAoZm9sbG93aW5nIGlzdHJ1Y3Rpb25zIGluICdyZWFkbWUnIGZpbGUgYWJvdXQgZmlsZSBuYW1lcykNCjIpIGRvd25sb2FkIGRpc2NoYXJnZSBkYXRhIGZyb20gVVNHUyBmb3IgdGhlIHNpdGUgYW5kIGRhdGUgcGVyaW9kDQozKSBnZW5lcmF0ZSBhIDE1bWluIGF2ZXJhZ2VkIGRhdGFzZXQgd2l0aCBjaGwsIHRlbXAsIGFuZCBRIGRhdGENCjQpIGdlbmVyYXRlIGEgQkFTRUZMT1cgMTVtaW4gYXZlcmFnZWQgZGF0YXNldCB3aXRoIGNobCwgdGVtcCwgYW5kIFEgZGF0YQ0KNSkgZ2VuZXJhdGUgYSBTVE9STUZMT1cgMTVtaW4gYXZlcmFnZWQgZGF0YXNldCB3aXRoIGNobCwgdGVtcCwgYW5kIFEgZGF0YQ==</div>
+<div id="rmd-source-code">LS0tDQp0aXRsZTogIkRhdGEgZW50cnksIGNsZWFuaW5nLCBhbmQgd29ya2luZyBkYXRhc2V0cyBnZW5lcmF0aW9uIg0Kb3V0cHV0OiBodG1sX25vdGVib29rDQplZGl0b3Jfb3B0aW9uczogDQogIGNodW5rX291dHB1dF90eXBlOiBpbmxpbmUNClJFQURNRTogU2VjdGlvbiBvcmRlciBpcyByZWxldmFudCwgcHJvbXB0IGVycm9ycyBtYXkgYmUgY2F1c2VkIGJ5IGZhaWxpbmcgdG8gcnVuIHByZXZpb3VzIGNvZGUgc2VjdGlvbnMNCi0tLQ0KDQpUaGUgc2NyaXB0IHdpbGwgZG8gdGhlIGZvbGxvd2luZzoNCjEpIGFkZCB0aGUgbW9zdCByZWNlbnQgaXQgdG8gdGhlIGFnZ3JlZ2F0ZWQgNW1pbiBkYXRhc2V0IChmb2xsb3dpbmcgaXN0cnVjdGlvbnMgaW4gJ3JlYWRtZScgZmlsZSBhYm91dCBmaWxlIG5hbWVzKQ0KMikgZG93bmxvYWQgZGlzY2hhcmdlIGRhdGEgZnJvbSBVU0dTIGZvciB0aGUgc2l0ZSBhbmQgZGF0ZSBwZXJpb2QNCjMpIGdlbmVyYXRlIGEgMTVtaW4gYXZlcmFnZWQgZGF0YXNldCB3aXRoIGNobCwgdGVtcCwgYW5kIFEgZGF0YQ0KNCkgZ2VuZXJhdGUgYSBCQVNFRkxPVyAxNW1pbiBhdmVyYWdlZCBkYXRhc2V0IHdpdGggY2hsLCB0ZW1wLCBhbmQgUSBkYXRhDQo1KSBnZW5lcmF0ZSBhIFNUT1JNRkxPVyAxNW1pbiBhdmVyYWdlZCBkYXRhc2V0IHdpdGggY2hsLCB0ZW1wLCBhbmQgUSBkYXRhDQoNCiMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjDQpNb2RpZml5IHRoZSBmb2xsb3dpbmcgaW5mb3JtYXRpb24gYmVmb3JlIHJ1bm5pbmcgdGhlIHNjcmlwdA0KYGBge3J9DQpkaXJlY3RvcnkgPSAiQzovVXNlcnMvYWRtaW4vRHJvcGJveC9jeWNsb3BzIg0KYWdncmVnZmlsZSA9ICJCUkFfQkFNLmNzdiINCmxhc3RmaWxlID0gIkJSQV9CQU1fSnVsMjItSnVsMjUyMDE5LmNzdiINCnN0YXJ0UWRhdGUgPSAiMjAxOS0wMy0yOCINCmVuZFFkYXRlID0gIjIwMTktMDgtMjMiDQpzaXRlUWNvZGUgPSAiMDE0ODEwMDAiICMwMTQ4MTAwMCBmb3IgQkFNIGFuZCAwMTQ4MTUwMCBmb3IgV0lMTUENCg0KYGBgDQoNCmBgYHtyfQ0Kc2V0d2QoIkM6L1VzZXJzL2FkbWluL2lDbG91ZERyaXZlL2N5Y2xvcHMvIikNCmBgYA0KDQoNCiMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjDQpSdW4gdGhlIHNjcmlwdDsga25pdCBzbyBwYXJ0aWFsIHJlc3VsdHMgY2FuIGJlIGFzc2Vzc2VkICANCiMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjDQpgYGB7cix3YXJuaW5nPVR9DQojbmVjZXNzYXJ5IHBhY2thZ2VzOiANCnBhY2tfbGlzdDwtbGlzdCAoInh0cyIsImRhdGFSZXRyaWV2YWwiLCJkcGx5ciIsImRhdGFSZXRyaWV2YWwiLCJkZXZ0b29scyIsIkRhdGFDb21iaW5lIiwibHVicmlkYXRlIiwiem9vIikNCmZvcihpIGluIDE6bGVuZ3RoKHBhY2tfbGlzdCkpew0KICBwIDwtIHBhY2tfbGlzdFtbaV1dDQogIGluc3RhbGwucGFja2FnZXMocCxyZXBvcyA9ICJodHRwczovL2NyYW4ucnN0dWRpby5jb20iLGRlcGVuZGVuY2llcyA9IFRSVUUpDQp9DQoNCg0KIyMjIyNTRVNUT04gRGF0YSBpbnB1dCBmcm9tIC5jc3YgYW5kIFJFU0VBUkNIIHNlcnZlci4gRmlsZSBpcyBuYW1lZCBieSBzZW5zb3IncyBuYW1lIG9ubHkuIEZpbGUgaW5jbHVkZSBkYXRlLCANCiMjIyMjdGltZSwgYmF0dGVyeSwgdGVtcGVyYXR1cmUsIGNobCh1Zy9MKSwgZ2FpbiB2b2x0YWdlIChjaGFuZ2UgY2hsIGNvbHVtbiBmcm9tIHNjaWVudGlmaWMgZm9ybWF0IHRvIGdlbmVyYWwpDQoNCg0KbGlicmFyeShkcGx5cikNCnNldHdkKGRpcmVjdG9yeSkNCmNobGRhdGEgPSByZWFkLmNzdihhZ2dyZWdmaWxlKSA7IGNobGRhdGFbLDFdIDwtIE5VTEwgOyBjaGxkYXRhID0gc2VsZWN0IChjaGxkYXRhLC1jKGRhdGV0aW1lKSkgOyB0YWlsKGNobGRhdGEsMSkNCmNobGRhdGEyID0gcmVhZC5jc3YobGFzdGZpbGUpIDsgaGVhZChjaGxkYXRhMiwxKQ0KY2hsZGF0YSA9IHJiaW5kKGNobGRhdGEsY2hsZGF0YTIpDQpjaGxkYXRhJGRhdGV0aW1lPC0gYXMudmVjdG9yKGFzLlBPU0lYY3QocGFzdGUoY2hsZGF0YSRkYXRlLCBjaGxkYXRhJHRpbWUpLCBmb3JtYXQ9IiVtLyVkLyVZICVIOiVNOiVTIiwgdHo9IkVTVCIpKQ0Kd3JpdGUuY3N2KGNobGRhdGEsIGZpbGUgPSBhZ2dyZWdmaWxlKSAjb3V0cHV0ICMxLCBhZ2dyZWdhdGVkIGRhdGFzZXQgb2YgY2hsIGFuZCB0ZW1wZXJhdHVyZSBldmVyeSA1bWluDQoNCg0KIyMjIyNESVNDSEFSR0UgZGF0YSBpbnB1dCB2aWEgVVJMIGZyb20gVVNHUyB1c2luZyBkYXRhUmV0cmlldmFsIHBhY2thZ2UNCg0KDQpsaWJyYXJ5KGRhdGFSZXRyaWV2YWwpI2NoZWNrIHN0YXRpb24gY29kZSBvbmxpbmUgKHVzdWFsbHkgYW4gOC0xNSBkaWdpdCBudW1lYnIpDQojIyNjaGVja2luZyBwYXJhbWV0ZXIgY29kZQ0KcGFyYW1ldGVyQ2RGaWxlIDwtIHBhcmFtZXRlckNkRmlsZQ0KQ2RzID0gZmlsdGVyKHBhcmFtZXRlckNkRmlsZSwgZ3JlcGwoIkRpc2NoYXJnZSIsIHBhcmFtZXRlckNkRmlsZSRwYXJhbWV0ZXJfbm0saWdub3JlLmNhc2U9VFJVRSkpDQoNCiMjI0lucHV0IHJlcXVlc3Qgc3BlY2lmaWNhdGlvbnM6DQpzaXRlTm8gPC0gc2l0ZVFjb2RlDQpwQ29kZSA8LSAiMDAwNjAiDQpzdGFydC5kYXRlIDwtIHN0YXJ0UWRhdGUNCmVuZC5kYXRlIDwtIGVuZFFkYXRlIA0KIyMjI3JldHJpZXZlIGRhdGEgZXZlcnkgMTVtaW4NCiAgICAgICAgQkFNX3EgPC0gcmVhZE5XSVN1dihzaXRlTnVtYmVycyA9IHNpdGVObywgDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgcGFyYW1ldGVyQ2QgPSBwQ29kZSwgDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgc3RhcnREYXRlID0gc3RhcnQuZGF0ZSwgDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgZW5kRGF0ZSA9IGVuZC5kYXRlLHR6ID0gIkVTVCIpIA0KDQojIyMjcmV0cmlldmUgZGFpbHkgYXZlcmFnZSBRDQogICAgICAgIEJBTV9xX2RhaWx5IDwtIHJlYWROV0lTZHYoc2l0ZU51bWJlcnMgPSBzaXRlTm8sIA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgIHBhcmFtZXRlckNkID0gcENvZGUsIA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgIHN0YXJ0RGF0ZSA9IHN0YXJ0LmRhdGUsIA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgIGVuZERhdGUgPSBlbmQuZGF0ZSkgDQpxZGF0YTE1ID0gQkFNX3ENCnFkYXRhID0gQkFNX3FfZGFpbHkNCmBgYCAgDQo=</div>
 
 
 

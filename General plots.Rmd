@@ -1,0 +1,153 @@
+---
+title: "General plots"
+author: "MPG"
+date: "April 5, 2019"
+output: html_document 
+
+README: This script needs to be run when data_entry_script.Rmd has been completed. Order of codechunks matter
+---
+###########################
+Package load and retrieval
+###########################
+```{r,warning=F}
+#necessary packages: 
+pack_list<-list ("ggplot2","openair","dygraphs","xts","dataRetrieval","dplyr","forecast","glue","dataRetrieval","devtools","DataCombine","lubridate","zoo")
+for(i in 1:length(pack_list)){
+  p <- pack_list[[i]]
+  install.packages(p,repos = "https://cran.rstudio.com",dependencies = TRUE)
+}
+```
+
+###########################################################
+Modifiy the following information before running the script
+```{r}
+qdata = "BRA_BAM_qdaily.csv"
+chldata = "BRA_BAM.csv"
+baseflowQ = 580
+stormflowQ = 850
+dataset.15min = "BRA_BAM_15min.csv"
+```
+
+#########################################################
+DAILY TIME SERIES 
+
+1) calculate daily means/max/min from high-frequency data
+2) plto daily data ------using dygraphs interactive: 
+https://www.r-graph-gallery.com/time-series/-------
+
+#########################################################
+```{r}
+library(xts)
+library(tidyverse)
+library(dygraphs)
+library(forecast)
+library(timeSeries)
+library(glue)
+
+chldata$date<-as.Date(chldata$date, format = "%m/%d/%Y") #output is YYY-mm-dd
+
+###Group by date for mean,CIup,and CIlow this can be done for Temperature too if needed
+      daily_chl_series = chldata %>% group_by(date) %>%
+        summarise_at(vars(chl), funs(mean(., na.rm = TRUE), 
+                                     (mean(., na.rm = TRUE) + sd(.,na.rm = TRUE)*1.96), 
+                                      mean(., na.rm = TRUE) - sd(.,na.rm = TRUE)*1.96))
+#interactive plot for daily data
+colnames(daily_chl_series) <- c("date","mean","CIup","CIlow")
+  daily_timeseries_chl = xts(x = daily_chl_series[,-1], order.by = daily_chl_series$date)
+        dygraph(daily_timeseries_chl,xlab = NULL, ylab = "sestonic chl (ug/L)") %>%
+            dySeries(c("CIlow", "mean", "CIup"))
+
+```
+
+
+###########################################
+DISCHARGE-SESTON DAILY RELATIONSHIP
+###########################################
+```{r}
+library(ggplot2)
+detach(package:dplyr) ; library(dplyr)
+
+ratingcurve<-merge(daily_chl_series,qdata,by = c("date"))
+ratingcurve_sub = filter(ratingcurve, Discharge <=2000) #To remove abnormal cases or significant outliers
+
+ggplot(ratingcurve_sub, aes(x=log(Discharge), y=log(mean))) +
+    geom_point(shape=1,size=3) +    
+    geom_smooth(method=lm) +
+    xlab("discharge (feet3/s)") +
+    ylab("sestonic chl (ug/L)") +
+    theme_bw()
+```
+
+
+###########################################################################################
+DIEL PATTERNS IN SESTON CHL CONCENTRATION DURING BASEFLOW
+Using 'lubridate' package for time/date data 
+The goal is to plot daily patterns for baseflow/stormflow and get a first visual inspection
+###########################################################################################
+```{r}
+#subset only baseflow days, threshold can be changed as neededed
+                                                                
+chldata_withq = inner_join(chldata,qdata,by = "date")
+chldata_baseflow = filter(chldata_withq, Discharge <=baseflowQ) 
+    #count total number of days and prepare plot grid
+    dates=as.list(unique(chldata_baseflow$date))
+    diels=list() ; Nd<-length(dates)
+    par(mfrow = c(round(sqrt(Nd))+1,round(sqrt(Nd))+1))
+    par(cex = 0.6)
+    par(mar = c(2, 2, 2, 2), oma = c(1, 1, 1, 1))
+
+        #examine diel patterns in chl conc.
+          for (i in 1:length(dates)){
+            diels[[i]] = filter(chldata_baseflow, date == dates[i])
+                 }
+                for (i in 1:length(dates)){ 
+                  t=diels[[i]]
+                  dateN<-t[1,1]
+                  plot(t[,5],
+                  main=paste0(dateN),
+                  ylab="chl(ug/L)",
+                  xlab="min since midnight",
+                  type="l",
+                  col="green")
+                                }
+```
+
+
+
+###########################################################################################
+DIEL PATTERNS IN SESTON CHL CONCENTRATION VS FLOW @BASEFLOW and STORMFLOW
+
+Using 'lubridate' package for time/date data 
+The goal is to plot daily patterns for baseflow/stormflow and get a first visual inspection
+###########################################################################################
+```{r}
+#flow threshold
+                  
+subset.dataset.15min = filter(dataset.15min, Discharge >=stormflowQ) 
+subset.dataset.15min$Date <- as.Date(subset.dataset.15min$date) 
+subset.dataset.15min$Time <- format(as.POSIXct(subset.dataset.15min$date) ,format = "%H:%M:%S") 
+
+    #count total number of days and prepare plot grid
+    dates=as.list(unique(subset.dataset.15min$Date))
+    diels=list() ; Nd<-length(dates)
+    par(mfrow = c(round(sqrt(Nd))+1,round(sqrt(Nd))+1))
+    par(cex = 0.6)
+    par(mar = c(2, 2, 2, 2), oma = c(1, 1, 1, 1))
+
+        #examine diel patterns in chl conc.
+          for (i in 1:length(dates)){
+            diels[[i]] = filter(subset.dataset.15min, Date == dates[i])
+                 }
+                for (i in 1:length(dates)){ 
+                  t=diels[[i]]
+                  dateN<-t[1,1]
+                  plot(t[,2], t[,3],
+                  main=paste0(dateN),
+                  ylab="chl(ug/L)",
+                  xlab="discharge",
+                  type="p",
+                  col="green")
+                }
+    
+
+```
