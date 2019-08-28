@@ -1,34 +1,32 @@
 ---
 title: "Data entry, cleaning, and working datasets generation"
-output: html_notebook
-editor_options: 
-  chunk_output_type: inline
+author: "MPG"
+date: "August 28, 2019"
+output: html_document
 README: Section order is relevant, prompt errors may be caused by failing to run previous code sections
 ---
 
+
 The script will do the following:
-1) add the most recent it to the aggregated 5min dataset (following istructions in 'readme' file about file names)
-2) download discharge data from USGS for the site and date period
-3) generate a 15min averaged dataset with chl, temp, and Q data
-4) generate a BASEFLOW 15min averaged dataset with chl, temp, and Q data
-5) generate a STORMFLOW 15min averaged dataset with chl, temp, and Q data
+1) add  most recent file to aggregated 5min dataset (instructions in 'readme' file)----$'rivername'_'sitename'.csv$
+2) download USGS Q data for site/date period----$'rivername'_'sitename'_q$ and $'rivername'_'sitename'_qdaily$
+3) generate a 15min averaged dataset with chl, temp, and Q data----$'rivername'_'sitename'_15min.csv$
+
 
 ###########################################################
 Modifiy the following information before running the script
 ```{r}
-directory = "C:/Users/admin/Dropbox/cyclops"
-aggregfile = "BRA_BAM.csv"
-lastfile = "BRA_BAM_Jul22-Jul252019.csv"
+directory = "R:/EcosystemsLab/Ecosystems projects/Brandywine/working_data/sensors/cyclops"
+aggregfile = "BRA_WILMA.csv"
+averaged_file = "BRA_WILMA_15min.csv"
+q_file = "BRA_WILMA_q.csv"
+qdaily_file = "BRA_WILMA_qdaily.csv"
+lastfile = "BRA_WILMA_Jul22-Jul252019.csv"
 startQdate = "2019-03-28"
 endQdate = "2019-08-23"
-siteQcode = "01481000" #01481000 for BAM and 01481500 for WILMA
+siteQcode = "01481500" #01481000 for BAM and 01481500 for WILMA
 
 ```
-
-```{r}
-setwd("C:/Users/admin/iCloudDrive/cyclops/")
-```
-
 
 ########################################################
 Run the script; knit so partial results can be assessed  
@@ -42,9 +40,7 @@ for(i in 1:length(pack_list)){
 }
 
 
-#####SESTON Data input from .csv and RESEARCH server. File is named by sensor's name only. File include date, 
-#####time, battery, temperature, chl(ug/L), gain voltage (change chl column from scientific format to general)
-
+#####SESTON Data input from .csv and RESEARCH server. File is named by sensor's name only. File include date, time, battery, temperature, chl(ug/L), gain voltage (change chl column from scientific format to general)
 
 library(dplyr)
 setwd(directory)
@@ -52,8 +48,9 @@ chldata = read.csv(aggregfile) ; chldata[,1] <- NULL ; chldata = select (chldata
 chldata2 = read.csv(lastfile) ; head(chldata2,1)
 chldata = rbind(chldata,chldata2)
 chldata$datetime<- as.vector(as.POSIXct(paste(chldata$date, chldata$time), format="%m/%d/%Y %H:%M:%S", tz="EST"))
-write.csv(chldata, file = aggregfile) #output #1, aggregated dataset of chl and temperature every 5min
 
+#output #1, aggregated dataset of chl and temperature every 5min
+write.csv(chldata, file = aggregfile) 
 
 #####DISCHARGE data input via URL from USGS using dataRetrieval package
 
@@ -79,6 +76,57 @@ end.date <- endQdate
                             parameterCd = pCode, 
                             startDate = start.date, 
                             endDate = end.date) 
-qdata15 = BAM_q
-qdata = BAM_q_daily
-```  
+
+Qtemp = BAM_q[,3:4]; colnames(Qtemp)<-c("date","Discharge")
+write.csv(Qtemp, file = q_file) #output #2, aggregated dataset of chl and temperature every 5min
+Qtemp = BAM_q_daily[,3:4]; colnames(Qtemp)<-c("date","Discharge")
+write.csv(Qtemp, file = qdaily_file) #output #2, aggregated dataset of chl and temperature every 5min
+
+
+#####MOVING AVERAGE SMOOTHING OF ORIGINAL TIME SERIES
+#####Generate a merged dataset that contains chl conc. averaged every 15min and paired with discharge data
+
+
+library(DataCombine)
+library(lubridate)
+library(zoo)
+
+######################################15min averaged dataset
+averaged_df<- select(chldata, c("chl","temp"))
+a <- as.vector(chldata$datetime)
+averaged_df$date <-as.vector(as.POSIXlt(round(as.double(a)/(15*60))*(15*60),
+                                        origin=(as.POSIXlt('1970-01-01')), 
+                                        tz="EST"))
+
+#convert date from 'POSIXlt' class to 'double' to allow aggregation with dplyr
+averaged_df$date <- as.double(averaged_df$date) 
+
+#aggregate by date 
+dataset.15min = averaged_df %>%
+  group_by(date) %>%
+  summarize(chl.avg = mean(chl, na.rm = TRUE), temp.avg = mean(temp, na.rm = TRUE)) 
+
+#reformat date back to 
+dataset.15min$date <- as.POSIXct(dataset.15min$date, format="%m/%d/%Y %H:%M:%S", 
+                                           origin=(as.POSIXlt('1970-01-01')),
+                                           tz="EST")
+
+#join with USGS data
+Q = BAM_q[,3:4]; colnames(Q)<-c("date","Discharge")
+#reformat to datetime format 
+Q$date <- as.POSIXct(Q$date, format="%m/%d/%Y %H:%M:%S", tz="EST")
+
+dataset.15min <- right_join(Q,dataset.15min,by = "date") #15min averaged dataset
+
+#output #3, aggregated dataset of chl and temperature every 5min
+write.csv(dataset.15min, file = averaged_file) 
+
+#Print dates with mismatch between Q and chl data and assess in final dataset
+for (i in 1:length(dataset.15min$date)) {
+  if(is.element(dataset.15min[i,1],unlist(Q$date))){
+    } else {
+       print(dataset.15min[i,1]) }
+}
+
+
+```
