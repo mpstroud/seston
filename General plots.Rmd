@@ -21,11 +21,11 @@ for(i in 1:length(pack_list)){
 ###########################################################
 Modifiy the following information before running the script
 ```{r}
-qdata = "BRA_BAM_qdaily.csv"
-chldata = "BRA_BAM.csv"
-baseflowQ = 580
-stormflowQ = 850
-dataset.15min = "BRA_BAM_15min.csv"
+qdata = read.csv("BRA_BAM_qdaily.csv")
+chldata = read.csv("BRA_BAM.csv")
+baseflowQ = 600
+stormflowQ = 1000
+dataset.15min = read.csv("BRA_BAM_15min.csv")
 ```
 
 #########################################################
@@ -44,7 +44,7 @@ library(forecast)
 library(timeSeries)
 library(glue)
 
-chldata$date<-as.Date(chldata$date, format = "%m/%d/%Y") #output is YYY-mm-dd
+chldata$date<-as_date(chldata$date) #lubridate function, outut is YYYY-mm-dd
 
 ###Group by date for mean,CIup,and CIlow this can be done for Temperature too if needed
       daily_chl_series = chldata %>% group_by(date) %>%
@@ -64,11 +64,13 @@ colnames(daily_chl_series) <- c("date","mean","CIup","CIlow")
 DISCHARGE-SESTON DAILY RELATIONSHIP
 ###########################################
 ```{r}
-library(ggplot2)
+library(ggplot2); library(lubridate)
 detach(package:dplyr) ; library(dplyr)
 
-ratingcurve<-merge(daily_chl_series,qdata,by = c("date"))
-ratingcurve_sub = filter(ratingcurve, Discharge <=2000) #To remove abnormal cases or significant outliers
+daily_chl_series$date<- as_date(daily_chl_series$date) #lubridate function, outut is YYYY-mm-dd
+qdata$date<- as_date(qdata$date) #lubridate function, outut is YYYY-mm-dd
+ratingcurve<-inner_join(daily_chl_series,qdata,by = "date")
+ratingcurve_sub = filter(ratingcurve, Discharge <=850) #To remove abnormal cases or significant outliers
 
 ggplot(ratingcurve_sub, aes(x=log(Discharge), y=log(mean))) +
     geom_point(shape=1,size=3) +    
@@ -85,16 +87,17 @@ Using 'lubridate' package for time/date data
 The goal is to plot daily patterns for baseflow/stormflow and get a first visual inspection
 ###########################################################################################
 ```{r}
-#subset only baseflow days, threshold can be changed as neededed
-                                                                
-chldata_withq = inner_join(chldata,qdata,by = "date")
-chldata_baseflow = filter(chldata_withq, Discharge <=baseflowQ) 
+#subset only baseflow days from the  'dataset.15min' dataset: value is set on top of the script
+chldata_baseflow = filter(dataset.15min, Discharge <=baseflowQ) 
+chldata_baseflow = chldata_baseflow %>% 
+  tidyr::drop_na(chl.avg)
+chldata_baseflow$date<- as_date(chldata_baseflow$date) #lubridate function, output is YYYY-mm-dd. This will allow the loop to subset all the values in a day
     #count total number of days and prepare plot grid
     dates=as.list(unique(chldata_baseflow$date))
     diels=list() ; Nd<-length(dates)
-    par(mfrow = c(round(sqrt(Nd))+1,round(sqrt(Nd))+1))
+    par(mfrow = c(round(sqrt(Nd)),round(sqrt(Nd))))
     par(cex = 0.6)
-    par(mar = c(2, 2, 2, 2), oma = c(1, 1, 1, 1))
+    par(mar = c(1, 1, 1, 1), oma = c(1, 1, 1, 1))
 
         #examine diel patterns in chl conc.
           for (i in 1:length(dates)){
@@ -102,8 +105,8 @@ chldata_baseflow = filter(chldata_withq, Discharge <=baseflowQ)
                  }
                 for (i in 1:length(dates)){ 
                   t=diels[[i]]
-                  dateN<-t[1,1]
-                  plot(t[,5],
+                  dateN<-t[1,2]
+                  plot(t[,4],
                   main=paste0(dateN),
                   ylab="chl(ug/L)",
                   xlab="min since midnight",
@@ -121,33 +124,31 @@ Using 'lubridate' package for time/date data
 The goal is to plot daily patterns for baseflow/stormflow and get a first visual inspection
 ###########################################################################################
 ```{r}
-#flow threshold
-                  
-subset.dataset.15min = filter(dataset.15min, Discharge >=stormflowQ) 
-subset.dataset.15min$Date <- as.Date(subset.dataset.15min$date) 
-subset.dataset.15min$Time <- format(as.POSIXct(subset.dataset.15min$date) ,format = "%H:%M:%S") 
-
+#subset only baseflow days from the  'dataset.15min' dataset: value is set on top of the script
+chldata_stormflow = filter(dataset.15min, Discharge >=stormflowQ) 
+chldata_stormflow = chldata_stormflow %>% 
+  tidyr::drop_na(chl.avg)
+chldata_stormflow$date<- as_date(chldata_stormflow$date) #lubridate function, output is YYYY-mm-dd. This will allow the loop to subset all the values in a day
     #count total number of days and prepare plot grid
-    dates=as.list(unique(subset.dataset.15min$Date))
+    dates=as.list(unique(chldata_stormflow$date))
     diels=list() ; Nd<-length(dates)
-    par(mfrow = c(round(sqrt(Nd))+1,round(sqrt(Nd))+1))
+    par(mfrow = c(round(sqrt(Nd)),round(sqrt(Nd))))
     par(cex = 0.6)
-    par(mar = c(2, 2, 2, 2), oma = c(1, 1, 1, 1))
+    par(mar = c(1, 1, 1, 1), oma = c(1, 1, 1, 1))
 
         #examine diel patterns in chl conc.
           for (i in 1:length(dates)){
-            diels[[i]] = filter(subset.dataset.15min, Date == dates[i])
+            diels[[i]] = filter(chldata_stormflow, date == dates[i])
                  }
                 for (i in 1:length(dates)){ 
                   t=diels[[i]]
-                  dateN<-t[1,1]
-                  plot(t[,2], t[,3],
+                  dateN<-t[1,2]
+                  plot(t[,4],
                   main=paste0(dateN),
                   ylab="chl(ug/L)",
-                  xlab="discharge",
-                  type="p",
+                  xlab="min since midnight",
+                  type="l",
                   col="green")
-                }
-    
+                                }
 
 ```
