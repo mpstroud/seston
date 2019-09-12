@@ -17,14 +17,14 @@ The script will do the following:
 Modifiy the following information before running the script
 ```{r}
 directory = "R:/EcosystemsLab/Ecosystems projects/Brandywine/working_data/sensors/cyclops"
-aggregfile = "BRA_WILMA.csv"
-averaged_file = "BRA_WILMA_15min.csv"
-q_file = "BRA_WILMA_q.csv"
-qdaily_file = "BRA_WILMA_qdaily.csv"
-lastfile = "BRA_WILMA_Jul22-Jul252019.csv"
+aggregfile = "BRA_BAM.csv"
+averaged_file = "BRA_BAM_15min.csv"
+q_file = "BRA_BAM_q.csv"
+qdaily_file = "BRA_BAM_qdaily.csv"
+lastfile = "BRA_BAM_Aug23-Sep42019.csv"
 startQdate = "2019-03-28"
-endQdate = "2019-08-23"
-siteQcode = "01481500" #01481000 for BAM and 01481500 for WILMA
+endQdate = "2019-09-04"
+siteQcode = "01481000" #01481000 for BAM and 01481500 for WILMA
 
 ```
 
