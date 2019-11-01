@@ -31,8 +31,9 @@ File include date, time, battery, temperature, chl(ug/L), gain voltage (change c
 ```{r setup, include=FALSE}
 library(dplyr)
 
-setwd("R:/EcosystemsLab/Ecosystems projects/Brandywine/working_data/sensors/cyclops")
+setwd("R:/EcosystemEcologyLab/BRANDYWINEdataDirectory/DataInDevelopment/SensorDeployment/BRA_BAM_clyde/04_product")
 chldata = read.csv("BRA_BAM.csv") ; chldata[,1] <- NULL ; chldata = select (chldata,-c(datetime)) ; tail(chldata,1)
+setwd("R:/EcosystemEcologyLab/BRANDYWINEdataDirectory/DataInDevelopment/SensorDeployment/BRA_BAM_clyde/01_input")
 chldata2 = read.csv("BRA_BAM_Jul22-Jul252019.csv") ; head(chldata2,1)
 chldata = rbind(chldata,chldata2)
 write.csv(chldata, file = "BRA_BAM.csv")

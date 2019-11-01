@@ -22,7 +22,7 @@ time, battery, temperature, chl(ug/L), gain voltage (change chl column from scie
 #########################################################################################################
 ```{r setup, include=FALSE}
 library(dplyr)
-setwd("R:/EcosystemsLab/Ecosystems projects/Brandywine/working_data/sensors/cyclops")
+setwd("R:/EcosystemEcologyLab/BRANDYWINEdataDirectory/DataInDevelopment/SensorDeployment/BRA_WILMA_bonnie/04_product")
 chldata = read.csv("BRA_WILMA.csv") ; chldata[,1] <- NULL ; chldata = select (chldata,-c(datetime))  ; tail(chldata,1)
 chldata2 = read.csv("BRA_WILMA_Jul25-Aug52019.csv") ; head(chldata2,1)
 chldata = rbind(chldata,chldata2)
@@ -52,7 +52,7 @@ Cds = filter(parameterCdFile, grepl("Discharge", parameterCdFile$parameter_nm,ig
 siteNo <- "01481500"
 pCode <- "00060"
 start.date <- "2019-03-27"
-end.date <- "2019-08-04" #----------------------------------------------change end date accordingly
+end.date <- "2019-09-26" #----------------------------------------------change end date accordingly
 
 ####retrieve data every 15min
         WILMA_q <- readNWISuv(siteNumbers = siteNo, 
