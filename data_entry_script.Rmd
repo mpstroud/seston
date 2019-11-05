@@ -117,7 +117,7 @@ dataset.15min$date <- as.POSIXct(dataset.15min$date, format="%m/%d/%Y %H:%M:%S",
 #join with USGS data
 Q = BAM_q[,3:4]; colnames(Q)<-c("date","Discharge")
 #reformat to datetime format 
-Q$date <- as.POSIXct(Q$date, format="%m/%d/%Y %H:%M:%S", tz="EST")
+Q$date <- as.POSIXct(Q$date, format="%m/%d/%Y %H:%M:%S", tz="EST") 
 
 dataset.15min <- right_join(Q,dataset.15min,by = "date") #15min averaged dataset
 
