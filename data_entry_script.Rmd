@@ -24,7 +24,7 @@ q_file = "BRA_WILMA_q.csv"
 qdaily_file = "BRA_WILMA_qdaily.csv"
 lastfile = "BRA_WILMA_Aug23-Sep42019.csv"
 startQdate = "2019-06-05"
-endQdate = "2019-09-26"
+endQdate = "2019-11-06"
 siteQcode = "01481500" #01481000 for BAM and 01481500 for WILMA
 
 ```
@@ -39,7 +39,8 @@ for(i in 1:length(pack_list)){
   p <- pack_list[[i]]
   install.packages(p,repos = "https://cran.rstudio.com",dependencies = TRUE)
 }
-
+```
+```{r}
 
 #####SESTON Data input from .csv and RESEARCH server. File is named by sensor's name only. File include date, time, battery, temperature, chl(ug/L), gain voltage (change chl column from scientific format to general)
 
