@@ -16,15 +16,17 @@ The script will do the following:
 ###########################################################
 Modifiy the following information before running the script
 ```{r}
-input_directory = "R:/EcosystemEcologyLab/BRANDYWINEdataDirectory/DataInDevelopment/SensorDeployment/BRA_WILMA_bonnie/01_input"
-output_directory = "R:/EcosystemEcologyLab/BRANDYWINEdataDirectory/DataInDevelopment/SensorDeployment/BRA_WILMA_bonnie/04_product"
-aggregfile = "BRA_WILMA.csv"
+input_directory = "~/Users/marc_peipoch/Dropbox/COVID_TempDirectories/BrandywineSeston"
+output_directory = "~/Users/marc_peipoch/Dropbox/COVID_TempDirectories/BrandywineSeston"
+aggregfile = "BRA_WILMA_Chl_Apr2020.csv"
 averaged_file = "BRA_WILMA_15min.csv"
 q_file = "BRA_WILMA_q.csv"
+t_file = "BRA_WILMA_t.csv"
 qdaily_file = "BRA_WILMA_qdaily.csv"
+tdaily_file = "BRA_WILMA_tdaily.csv"
 lastfile = "BRA_WILMA_Aug23-Sep42019.csv"
 startQdate = "2019-06-05"
-endQdate = "2019-11-06"
+endQdate = "2020-01-13"
 siteQcode = "01481500" #01481000 for BAM and 01481500 for WILMA
 
 ```
@@ -50,7 +52,7 @@ chldata = read.csv(aggregfile) ; chldata[,1] <- NULL ; chldata = select (chldata
 setwd(input_directory)
 chldata2 = read.csv(lastfile) ; head(chldata2,1)
 chldata = rbind(chldata,chldata2)
-chldata$datetime<- as.vector(as.POSIXct(paste(chldata$date, chldata$time), format="%m/%d/%Y %H:%M:%S", tz="EST"))
+chldata$datetime<- as.vector(as.POSIXct(paste(chldata$date, chldata$time), format="%m/%d/%y %H:%M:%S", tz="EST"))
 setwd(output_directory)
 
 #output #1, aggregated dataset of chl and temperature every 5min
@@ -86,6 +88,32 @@ write.csv(Qtemp, file = q_file) #output #2, aggregated dataset of chl and temper
 Qtemp = BAM_q_daily[,3:4]; colnames(Qtemp)<-c("date","Discharge")
 write.csv(Qtemp, file = qdaily_file) #output #2, aggregated dataset of chl and temperature every 5min
 
+###repeat last steps for Turbidity instead of Q; dates and site remain the same
+###checking parameter code
+parameterCdFile <- parameterCdFile
+Cds = filter(parameterCdFile, grepl("Turbidity", parameterCdFile$parameter_nm,ignore.case=TRUE))
+
+###Input request specifications:
+siteNo <- siteQcode
+pCode <- "63680"
+start.date <- startQdate
+end.date <- endQdate 
+####retrieve data every 15min
+        BAM_t <- readNWISuv(siteNumbers = siteNo, 
+                            parameterCd = pCode, 
+                            startDate = start.date, 
+                            endDate = end.date,tz = "EST") 
+
+####retrieve daily average Q
+        BAM_t_daily <- readNWISdv(siteNumbers = siteNo, 
+                            parameterCd = pCode, 
+                            startDate = start.date, 
+                            endDate = end.date) 
+
+Ttemp = BAM_t[,3:4]; colnames(Ttemp) <- c("date","Turbidity")
+write.csv(Ttemp, file = t_file) #output #2, aggregated dataset of chl and temperature every 5min
+Ttemp = BAM_t_daily[,3:4]; colnames(Ttemp)<-c("date","Turbidity")
+write.csv(Ttemp, file = tdaily_file) #output #2, aggregated dataset of chl and temperature every 5min
 
 #####MOVING AVERAGE SMOOTHING OF ORIGINAL TIME SERIES
 #####Generate a merged dataset that contains chl conc. averaged every 15min and paired with discharge data
@@ -117,10 +145,13 @@ dataset.15min$date <- as.POSIXct(dataset.15min$date, format="%m/%d/%Y %H:%M:%S",
 
 #join with USGS data
 Q = BAM_q[,3:4]; colnames(Q)<-c("date","Discharge")
+Turb = BAM_t[,3:4];  colnames(Turb)<-c("date","Turbidity")
 #reformat to datetime format 
 Q$date <- as.POSIXct(Q$date, format="%m/%d/%Y %H:%M:%S", tz="EST") 
+Turb$date <- as.POSIXct(Turb$date, format="%m/%d/%Y %H:%M:%S", tz="EST") 
 
-dataset.15min <- right_join(Q,dataset.15min,by = "date") #15min averaged dataset
+QTurb <- right_join(Q,Turb,by = "date") 
+dataset.15min <- right_join(QTurb,dataset.15min,by = "date") #15min averaged dataset
 
 #output #3, aggregated dataset of chl and temperature every 5min
 write.csv(dataset.15min, file = averaged_file) 
