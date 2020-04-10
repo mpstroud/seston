@@ -1,0 +1,8 @@
+On March 26, 2020 i received files from Cathy. Chlorophyll data are QA/QC and smoothed. 
+For BRA_BAM_Chl I Added everything prior to Dec 2019.
+
+Two Scripts are used to date: 
+1- data_entry_script
+2-General plots
+These code allows integration of chl data with Q data and turbidity data from USGS and generates a new data set at 15min intervals.
+For DO I will use StreamMetabolizer code to assess metabolism.
