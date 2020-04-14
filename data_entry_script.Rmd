@@ -25,9 +25,9 @@ t_file = "BRA_WILMA_t.csv"
 qdaily_file = "BRA_WILMA_qdaily.csv"
 tdaily_file = "BRA_WILMA_tdaily.csv"
 lastfile = "BRA_WILMA_Aug23-Sep42019.csv"
-startQdate = "2019-06-05"
-endQdate = "2020-01-13"
-siteQcode = "01481500" #01481000 for BAM and 01481500 for WILMA
+startQdate = "2019-03-28"
+endQdate = "2020-04-14"
+siteQcode = "01481000" #01481000 for BAM and 01481500 for WILMA
 
 ```
 

@@ -1,0 +1,165 @@
+---
+title: "BRA_Metabolism"
+output: html_document
+---
+
+The following script uses StreamMetabolizer to estimate GPP and ER rates at the Brandywine stations.
+Installation details. OMIT if necessary
+```{r setup, include=FALSE}
+remotes::install_github('appling/unitted') #somteimes Rcpp has no binary version yet, if so, don;t update from source versions, instead, say no to the source compilation and install the most recent binary version
+remotes::install_github("USGS-R/streamMetabolizer") #directly from Git so we get the most recent version
+
+#other nececessary packages: 
+pack_list<-list ("Rtools","rstan")
+for(i in 1:length(pack_list)){
+  p <- pack_list[[i]]
+  install.packages(p,repos = "https://cran.rstudio.com",dependencies = TRUE)
+}
+
+```
+
+Data input following guidelines:
+FOR DO and TEMPREATURE, I used miniDOT data when available and until Jan-7, 2020. Then we switched to DO probe in mayfly.
+When data from sensors (miniDOT or Mayfly) are not available or clearly compromised (out of water, malfunction,etc.) I used USGS data to fill gaps
+PAR data come from WCD696 station at White Clay Creek
+Gage data come from USGS station. 
+DOsat concentration is calculated fom temperature data prior to analysis
+```{r}
+library(streamMetabolizer) ; library(unitted)
+# file inoput is named BRA_BAM_Met_mmmYYYY
+# averaged Do and T data every 15 min, donwloaded PAR from WCD696 (near Stroud), and added gage from Museum USGS station
+#time should be in Unix units (output from miniDOT)
+dat <- read.csv("BRA_BAM_Met_Jan2020.csv",head=T,sep=",") # load csv data
+
+dat$solar.time<-as.POSIXct(dat$solar.time, format="%m/%d/%y %H:%M:%S", tz="Etc/GMT+5")
+lubridate::tz(dat$solar.time) # code should be EST
+dat$solar.time <- streamMetabolizer::calc_solar_time(dat$solar.time, longitude=-75) #make it mean solar time
+
+unitats<-c(	"", "mgO2 L^-1" ,	"mgO2 L^-1"	, "m"	, "degC" , "umol m^-2 s^-1") #attach units and form a unitted data.frame
+dat_unitted<-u(dat, units = unitats)
+dat_unitted[c(1,48,96,240,288),] #check that numbers are of rigth magnitude according to the suppoesed units 
+```
+
+Visualization of raw data
+```{r}
+library(ggplot2); library(dplyr) ; library(tidyr)
+#DO percent saturation and concentration
+dat_unitted%>% unitted::v() %>%
+  mutate(DO.pctsat = 100 * (DO.obs / DO.sat)) %>%
+  select(solar.time, starts_with('DO')) %>%
+  gather(type, DO.value, starts_with('DO')) %>%
+  mutate(units=ifelse(type == 'DO.pctsat', 'DO\n(% sat)', 'DO\n(mg/L)')) %>%
+  ggplot(aes(x=solar.time, y=DO.value, color=type)) + geom_line() + 
+  facet_grid(units ~ ., scale='free_y') + theme_bw() +
+  scale_color_discrete('variable')
+
+labels <- c(DO.obs='DO concentration\n(mg/L)', DO.sat='DO saturation(%)')
+dat_unitted %>% unitted::v() %>%
+  select(solar.time, DO.obs, DO.sat) %>%
+  gather(type, value, DO.obs, DO.sat) %>%
+  mutate(type=ordered(type, levels=c('DO.obs','DO.sat')),
+    units=ordered(labels[type], unname(labels))) %>%
+  ggplot(aes(x=solar.time, y=value, color=type)) + geom_line(color='black') + 
+  facet_grid(units ~ ., scale='free_y') + theme_bw() +
+  scale_color_discrete('black')
+
+
+#depth,water temperature, and light
+labels <- c(depth='depth\n(m)', temp.water='water temp\n(deg C)', light='PAR\n(umol m^-2 s^-1)')
+dat_unitted %>% unitted::v() %>%
+  select(solar.time, depth, temp.water, light) %>%
+  gather(type, value, depth, temp.water, light) %>%
+  mutate(
+    type=ordered(type, levels=c('depth','temp.water','light')),
+    units=ordered(labels[type], unname(labels))) %>%
+  ggplot(aes(x=solar.time, y=value, color=type)) + geom_line() + 
+  facet_grid(units ~ ., scale='free_y') + theme_bw() +
+  scale_color_discrete('variable')
+
+#water temperature and light
+labels <- c( temp.water='water temp\n(deg C)', light='PAR\n(umol m-2 s-1)')
+dat_unitted %>% unitted::v() %>%
+  select(solar.time, temp.water, light) %>%
+  gather(type, value, temp.water, light) %>%
+  mutate(
+    type=ordered(type, levels=c('temp.water','light')),
+    units=ordered(labels[type], unname(labels))) %>%
+  ggplot(aes(x=solar.time, y=value, color=type)) + geom_line(color='black') + 
+  facet_grid(units ~ ., scale='free_y') + theme_bw() +
+  scale_color_discrete('black')
+
+#DO concetration and saturation, water temperature, and light
+labels <- c(DO.obs='DO concentration\n(mg/L)', DO.sat='Do saturation(%)', temp.water='water temp\n(deg C)', light='PAR\n(umol m-2 s-1)')
+dat_unitted %>% unitted::v() %>%
+  select(DO.obs,DO.sat,solar.time, temp.water, light) %>%
+  gather(type, value, DO.obs,DO.sat,temp.water, light) %>%
+  mutate(
+    type=ordered(type, levels=c('DO.obs','DO.sat','temp.water','light')),
+    units=ordered(labels[type], unname(labels))) %>%
+  ggplot(aes(x=solar.time, y=value, color=type)) + geom_line(color='black') + 
+  facet_grid(units ~ ., scale='free_y') + theme_bw() +
+  scale_color_discrete('black')
+
+
+```
+
+
+```{r}
+remove.packages('rstan')
+install.packages('rstan')
+library(Rtools); library(rstan)
+#########model 1: Bayesian
+bayes_name <- mm_name(type='bayes', pool_K600='none', err_obs_iid=TRUE, err_proc_iid=TRUE)
+bayes_name
+bayes_specs <- specs(bayes_name)
+bayes_specs
+#specifications of model (i.e. priors)
+bayes_specs <- specs(bayes_name, burnin_steps=100, saved_steps=200, n_cores=1,K600_daily_meanlog = 10)
+#run model
+mm_proba <- metab(bayes_specs, data=dat)
+mm <- metab(bayes_specs, data=dat_unitted)
+mm
+#model parameters
+output<-predict_metab(mm_proba)
+output
+output[c(11:25),]
+plot_metab_preds(mm_proba)
+#check for collinearity between ER and K600
+out<-get_params(mm_proba)
+par(mar = c(5,5,1,1))
+plot<-plot(output2$K600.daily,output2$ER.daily,xlab =expression("Daily"~K[600]~(d^{-1})),
+           pch=16,cex=1.5,col='black',
+           ylab=expression("Daily ER" ~ (g ~ O[2]~m^{-2} ~d^{-1})),
+           cex.lab=1.2)
+output
+
+
+
+```
+
+```{r}
+######model 2:Maximum likelihood estimation
+mle_name<- mm_name(type='mle')
+mle_name
+mle_specs <- specs(mle_name)
+mle_specs
+mle_specs <- specs(mle_name, init.GPP.daily=15, init.ER.daily=-12, init.K600.daily=3)
+mle_specs <- specs(mle_name, day_start=5, day_end=29, init.K600.daily=100,init.GPP.daily=15)
+mle_specs
+mm <- metab(mle_specs, data=dat_check2, info=c(site='Miller Creek', source='Kim Bray'))
+mm <- metab(mle_specs, data=dat_check2)
+#extract specific pieces of info
+get_info(mm)
+head(get_data(mm))
+get_fitting_time(mm) #time for model to run
+get_specs(mm) #model specs
+
+#predict and plot metabolism estimates from MLE model
+predict_metab(mm)
+plot_metab_preds(mm)
+#predict and plot DO predictions from MLE model AND observed values
+plot_DO_preds(mm)
+head(predict_DO(mm))
+
+```
+
