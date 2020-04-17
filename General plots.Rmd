@@ -125,7 +125,7 @@ The goal is to plot daily patterns for baseflow/stormflow and get a first visual
 ###########################################################################################
 ```{r}
 #subset only baseflow days from the  'dataset.15min' dataset: value is set on top of the script
-chldata_stormflow = filter(dataset.15min, Discharge >=stormflowQ) 
+chldata_stormflow = filter(dataset.15min, Discharge >= stormflowQ) 
 chldata_stormflow = chldata_stormflow %>% 
   tidyr::drop_na(chl.avg)
 chldata_stormflow$date<- as_date(chldata_stormflow$date) #lubridate function, output is YYYY-mm-dd. This will allow the loop to subset all the values in a day

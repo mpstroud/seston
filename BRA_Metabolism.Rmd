@@ -29,7 +29,8 @@ library(streamMetabolizer) ; library(unitted)
 # file inoput is named BRA_BAM_Met_mmmYYYY
 # averaged Do and T data every 15 min, donwloaded PAR from WCD696 (near Stroud), and added gage from Museum USGS station
 #time should be in Unix units (output from miniDOT)
-dat <- read.csv("BRA_BAM_Met_Jan2020.csv",head=T,sep=",") # load csv data
+#dates are in EST
+dat <- read.csv("BRA_BAM_Met_Apr2020.csv",head=T,sep=",") # load csv data
 
 dat$solar.time<-as.POSIXct(dat$solar.time, format="%m/%d/%y %H:%M:%S", tz="Etc/GMT+5")
 lubridate::tz(dat$solar.time) # code should be EST
@@ -105,8 +106,6 @@ dat_unitted %>% unitted::v() %>%
 
 
 ```{r}
-remove.packages('rstan')
-install.packages('rstan')
 library(Rtools); library(rstan)
 #########model 1: Bayesian
 bayes_name <- mm_name(type='bayes', pool_K600='none', err_obs_iid=TRUE, err_proc_iid=TRUE)
@@ -125,12 +124,13 @@ output
 output[c(11:25),]
 plot_metab_preds(mm_proba)
 #check for collinearity between ER and K600
-out<-get_params(mm_proba)
+output2<-get_params(mm_proba)
 par(mar = c(5,5,1,1))
 plot<-plot(output2$K600.daily,output2$ER.daily,xlab =expression("Daily"~K[600]~(d^{-1})),
            pch=16,cex=1.5,col='black',
            ylab=expression("Daily ER" ~ (g ~ O[2]~m^{-2} ~d^{-1})),
-           cex.lab=1.2)
+           cex.lab=1.2,
+           xlim=c(0,60))
 output
 
 

@@ -1,0 +1,173 @@
+---
+title: "Flow Separation"
+output: html_document
+---
+
+###########################################################
+Modifiy the following information before running the script
+```{r}
+raw_data = "BRA_WILMA_15min.csv"
+startQdate = "2010-03-01" #dates are set for a 10 year period so baseflow is calculated with longer time series
+endQdate = "2020-03-01"
+siteQcode = "01481500" #01481000 for BAM and 01481500 for WILMA
+
+```
+
+########################################################
+Run the script; knit so partial results can be assessed  
+########################################################
+```{r,warning=T}
+#necessary packages: 
+install.packages(c("dataRetrieval","EcoHydRology"),repos = "https://cran.rstudio.com",dependencies = TRUE)
+
+```
+
+I'll use EcoHydRology package for the baseflow separation
+```{r setup, include=FALSE}
+library(dataRetrieval) ; library(EcoHydRology) ; library(dplyr) ; library(lubridate) ; library(ggplot2) ;  
+library(ggpubr) ; library(tidyr) ; library(stringr) 
+
+BRA_BAM_15min = read.csv(raw_data) #don't change file name when run WILMA data(only at the top)
+temp_date = as.data.frame(str_split_fixed(BRA_BAM_15min$date, " ", 2)) ; colnames(temp_date)<-c("date","time")
+BRA_BAM_15min$date <- temp_date$date
+BRA_BAM_15min$time <- temp_date$time
+
+###Input request specifications:
+siteNo <- siteQcode
+pCode <- "00060" #00060 is Q
+start.date <- startQdate
+end.date <- endQdate 
+####retrieve data every 15min
+        Qdata <-  readNWISdv(siteNumbers = siteNo, 
+                            parameterCd = pCode, 
+                            startDate = start.date, 
+                            endDate = end.date) 
+
+Qtemp = Qdata[,3:4]; colnames(Qtemp)<-c("date","Discharge")
+Qtemp2<-BaseflowSeparation(Qtemp$Discharge, passes=3) 
+Qtemp$bfs<-Qtemp2[,1]
+
+#merge with BRA_15min
+temp<-BRA_BAM_15min
+temp$date<-as.Date(temp$date,"%Y-%m-%d") ; temp$X<-NULL
+temp <- merge(Qtemp,temp,by="date")
+temp <-arrange(temp,date,time) #Discharge.x is daily and .y is every 15min
+            #visually assess bfs
+            p1<-ggplot(temp, aes(x=date, y=Discharge.x)) +
+                geom_line()
+            p2<-ggplot(temp, aes(x=date, y=bfs)) +
+                geom_line()
+            p3<-ggplot(temp, aes(x=date, y=(Discharge.x-bfs))) +
+                geom_line()
+            ggarrange(p1, p2, p3, labels = c("A", "B","C"), ncol = 2, nrow = 2) #check for general patterns
+                    par(mfrow=c(1,1))
+                    temp$diff <- temp$Discharge.x - temp$bfs #difference between actual Q and baseflow (bfs)
+                    plot(temp$Discharge.x,temp$diff)
+
+#create factor to describe daily state of flow into:baseflow, stormflow, transition
+temp_class <- temp %>%
+      mutate(., Base.Storm = ifelse((Discharge.x <= 600 & diff <= 40), "Baseflow",
+                                ifelse((Discharge.x < 600 & diff > 40), "Transition","Stormflow")))
+table(temp_class$Base.Storm)/(6*24) #to indcate number of days per class
+
+ggplot(temp_class, aes(x=date, y=Discharge.y, group=Base.Storm, color=Base.Storm)) +
+    geom_point() #visually asses if it's working
+#seems to work okay... 
+write.csv(temp_class, file = "BRA_WILMA_15min_Flow.csv") 
+```
+
+```{r}
+library (RColorBrewer)
+#---------------------------------Baseflow Patterns
+chl_baseflow <- temp_class %>%
+      filter(. , Base.Storm =="Baseflow") #filter only baseflow days
+
+baseflowDates <- unique(chl_baseflow$date) 
+write.csv(baseflowDates, file = "BRA_WILMA_15min_BaseFlowDates.csv") 
+
+#make a new date-time column to work with lubridate on monthly separation
+chl_baseflow$datetime <- as.vector(as.POSIXct(paste(chl_baseflow$date, chl_baseflow$time), 
+                                                    format="%Y-%m-%d %H:%M:%S", tz="EST"))
+
+chl_baseflow$dateformatted <- as_datetime(chl_baseflow$datetime, tz="EST" )
+chl_baseflow$month <- month(chl_baseflow$dateformatted)
+chl_baseflow$day <- day(chl_baseflow$dateformatted)
+chl_baseflow$timestamp <- as.factor(chl_baseflow$time)
+
+ ggplot(data = chl_baseflow, mapping = aes(x = timestamp, y = chl.avg, colour=as.factor(day))) +
+     geom_point() + ylim(0,3) +
+     stat_smooth(method = "loess", formula = y ~ x, size = 1) +
+     facet_wrap(vars(month)) +
+     scale_colour_brewer(palette="Set1") +
+     theme_bw()
+ 
+ #create a longer colour palette
+colourDay = length(unique(chl_baseflow$day))
+getPalette = colorRampPalette(brewer.pal(9, "Set1"))
+
+    ggplot(data = chl_baseflow, mapping = aes(x = timestamp, y = chl.avg, colour=as.factor(day))) +
+       geom_point() + ylim(0,3) +
+       stat_smooth(method = "loess", formula = y ~ x, size = 1) +
+       facet_wrap(vars(month)) +
+       scale_colour_brewer(palette="Set1") +
+       theme_bw() +
+       scale_colour_manual(values = getPalette(colourDay))
+
+#---------------------------------Stormflow Patterns
+chl_Stormflow <- temp_class %>%
+      filter(. , Base.Storm =="Stormflow") #filter only baseflow days
+
+chl_Stormflow$datetime <- as.vector(as.POSIXct(paste(chl_Stormflow$date, chl_Stormflow$time), 
+                                                    format="%Y-%m-%d %H:%M:%S", tz="EST"))
+
+chl_Stormflow$dateformatted <- as_datetime(chl_Stormflow$datetime, tz="EST" )
+chl_Stormflow$month <- month(chl_Stormflow$dateformatted)
+chl_Stormflow$day <- day(chl_Stormflow$dateformatted)
+chl_Stormflow$timestamp <- as.factor(chl_Stormflow$time)
+
+colourDay = length(unique(chl_Stormflow$day))
+getPalette = colorRampPalette(brewer.pal(9, "Set1"))
+
+    ggplot(data = chl_Stormflow, mapping = aes(x = timestamp, y = chl.avg, colour=as.factor(day))) +
+       geom_point() + ylim(0,15) +
+       stat_smooth(method = "loess", formula = y ~ x, size = 1) +
+       facet_wrap(vars(month)) +
+       scale_colour_brewer(palette="Set1") +
+       theme_bw() +
+       scale_colour_manual(values = getPalette(colourDay))
+
+#look at Q data to begin decision process on what flood events to select
+    
+  ggplot(data = chl_Stormflow, mapping = aes(x = timestamp, y = Discharge.y, colour=as.factor(day))) +
+       geom_point() +
+       facet_wrap(vars(month)) +
+       scale_colour_brewer(palette="Set1") +
+       theme_bw() +
+       scale_colour_manual(values = getPalette(colourDay))
+  
+#Will take each of the full days with Storm flow and take another day earlier and another later. Three days total per event.
+
+BRA_BAM_15min$date <- as.Date(BRA_BAM_15min$date) #not the original BRA_BAM_15min; the one with time separated (done earlier)
+BRA_BAM_15min$datetime <- as.vector(as.POSIXct(paste(BRA_BAM_15min$date, BRA_BAM_15min$time), 
+                                                    format="%Y-%m-%d %H:%M:%S", tz="EST"))
+stormDates <- unique(chl_Stormflow$date) 
+write.csv(stormDates, file = "BRA_WILMA_15min_StormwDates.csv") 
+hystereses_plots<-list()
+
+for (i in 1:length(stormDates)){
+startD <- stormDates[i] - 1 ; endD <- stormDates[i] + 1
+hystereses_plots[[i]] <- BRA_BAM_15min %>%
+  filter(., date >= startD, date <= endD) %>%
+  ggplot(., aes(x=Discharge, y=chl.avg)) + 
+  geom_point(aes(color=datetime)) + geom_path(aes(color=datetime)) +
+  ggtitle(stormDates[i]) +
+  scale_colour_gradient(low = "red", high = "blue") +
+  theme_bw() 
+}
+
+hystereses_plots[12]
+
+
+
+```
+
