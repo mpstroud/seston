@@ -6,10 +6,10 @@ output: html_document
 ###########################################################
 Modifiy the following information before running the script
 ```{r}
-raw_data = "BRA_WILMA_15min.csv"
+raw_data = "BRA_BAM_15min.csv"
 startQdate = "2010-03-01" #dates are set for a 10 year period so baseflow is calculated with longer time series
 endQdate = "2020-03-01"
-siteQcode = "01481500" #01481000 for BAM and 01481500 for WILMA
+siteQcode = "01481000" #01481000 for BAM and 01481500 for WILMA
 
 ```
 
@@ -165,7 +165,7 @@ hystereses_plots[[i]] <- BRA_BAM_15min %>%
   theme_bw() 
 }
 
-hystereses_plots[12]
+hystereses_plots[1]
 
 
 
