@@ -10,7 +10,9 @@ raw_data = "BRA_BAM_15min.csv"
 startQdate = "2010-03-01" #dates are set for a 10 year period so baseflow is calculated with longer time series
 endQdate = "2020-03-01"
 siteQcode = "01481000" #01481000 for BAM and 01481500 for WILMA
-
+output1 = "BRA_BAM_15min_Flow.csv"
+output2 = "BRA_BAM_15min_BaseFlowDates.csv"
+output3 = "BRA_BAM_15min_StormwDates.csv"
 ```
 
 ########################################################
@@ -73,7 +75,7 @@ table(temp_class$Base.Storm)/(6*24) #to indcate number of days per class
 ggplot(temp_class, aes(x=date, y=Discharge.y, group=Base.Storm, color=Base.Storm)) +
     geom_point() #visually asses if it's working
 #seems to work okay... 
-write.csv(temp_class, file = "BRA_WILMA_15min_Flow.csv") 
+write.csv(temp_class, file = output1) 
 ```
 
 ```{r}
@@ -83,7 +85,7 @@ chl_baseflow <- temp_class %>%
       filter(. , Base.Storm =="Baseflow") #filter only baseflow days
 
 baseflowDates <- unique(chl_baseflow$date) 
-write.csv(baseflowDates, file = "BRA_WILMA_15min_BaseFlowDates.csv") 
+write.csv(baseflowDates, file = output2) 
 
 #make a new date-time column to work with lubridate on monthly separation
 chl_baseflow$datetime <- as.vector(as.POSIXct(paste(chl_baseflow$date, chl_baseflow$time), 
@@ -151,7 +153,7 @@ BRA_BAM_15min$date <- as.Date(BRA_BAM_15min$date) #not the original BRA_BAM_15mi
 BRA_BAM_15min$datetime <- as.vector(as.POSIXct(paste(BRA_BAM_15min$date, BRA_BAM_15min$time), 
                                                     format="%Y-%m-%d %H:%M:%S", tz="EST"))
 stormDates <- unique(chl_Stormflow$date) 
-write.csv(stormDates, file = "BRA_WILMA_15min_StormwDates.csv") 
+write.csv(stormDates, file = output3) 
 hystereses_plots<-list()
 
 for (i in 1:length(stormDates)){

@@ -25,14 +25,21 @@ PAR data come from WCD696 station at White Clay Creek
 Gage data come from USGS station. 
 DOsat concentration is calculated fom temperature data prior to analysis
 ```{r}
-library(streamMetabolizer) ; library(unitted)
+library(streamMetabolizer) ; library(unitted) ; library(lubridate) ; library(dplyr)
 # file inoput is named BRA_BAM_Met_mmmYYYY
 # averaged Do and T data every 15 min, donwloaded PAR from WCD696 (near Stroud), and added gage from Museum USGS station
 #time should be in Unix units (output from miniDOT)
 #dates are in EST
 dat <- read.csv("BRA_BAM_Met_Apr2020.csv",head=T,sep=",") # load csv data
+#select only days of baseflow, use the list genrated by FlowSeparation script.
+dat$solar.time<-as.POSIXct(dat$solar.time, format="%m/%d/%y %H:%M", tz="EST")
+dat$day<- date(dat$solar.time)
+dates<-read.csv("BRA_BAM_15min_BaseFlowDates.csv") ; colnames(dates) <- c("id","day")
+dat$day<- as_date(dat$day) ; dates$day <- as_date(dates$day)
+dat<- right_join(dat, dates, by="day") ; dat <- dat [,c(-7:-8)]
 
-dat$solar.time<-as.POSIXct(dat$solar.time, format="%m/%d/%y %H:%M:%S", tz="Etc/GMT+5")
+
+dat$solar.time<-as.POSIXct(dat$solar.time, format="%m/%d/%y %H:%M", tz="EST")
 lubridate::tz(dat$solar.time) # code should be EST
 dat$solar.time <- streamMetabolizer::calc_solar_time(dat$solar.time, longitude=-75) #make it mean solar time
 
