@@ -4,7 +4,7 @@ author: "MPG"
 date: "April 5, 2019"
 output: html_document 
 
-README: This script needs to be run when data_entry_script.Rmd has been completed. Order of codechunks matter
+README: This script needs to be run when data_entry_script.Rmd has been completed. Keep chunk order as is
 ---
 ###########################
 Package load and retrieval

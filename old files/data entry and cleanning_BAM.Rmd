@@ -55,7 +55,7 @@ parameterCdFile <- parameterCdFile
 Cds = filter(parameterCdFile, grepl("Discharge", parameterCdFile$parameter_nm,ignore.case=TRUE))
 
 ###Input request specifications:
-siteNo <- "01481000"
+siteNo <- "01427195"
 pCode <- "00060"
 start.date <- "2019-03-28"
 end.date <- "2019-08-23" #----------------------------------------------change end date accordingly
