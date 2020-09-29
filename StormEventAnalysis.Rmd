@@ -1,0 +1,42 @@
+---
+title: "StormEventAnalysis"
+author: "MPG"
+date: "9/25/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library (ggplot2) ; library(lubridate) ; library(dplyr) ; library(zoo) ; library(RColorBrewer) ; library(gridExtra)
+setwd("R:/EcosystemEcologyLab/BRANDYWINEdataDirectory/DataInDevelopment/Aggregations/BRA_compiled/BrandywineEventsData/WILMA STORMS")
+raw_data <- read.csv("BRA_WILMA_Oct17-18_2019_Storm.csv",head=T,sep=",") # load storm event file data
+
+#upper boundary of Stromflow observations
+up_Storm = min(which(raw_data[,"FlowType"] == "Stormflow")) - 20
+#lower boundary of Stromflow observations
+dw_Storm = max(which(raw_data[,"FlowType"] == "Stormflow")) + 20
+
+storm_data = raw_data[(up_Storm:dw_Storm),] #selecting 20 observation above and below the Storm hydrograph
+storm_data$date = as.Date(storm_data$date, "%m/%d/%Y") #convert date as character into a class 'Date' column that lubridate recognizes 
+storm_data$datetime = with(storm_data, ymd(date) + hms(time)) #create a variable with datetime using lubridate
+
+plot_storm_data = storm_data %>% 
+  mutate(chl.hour = rollmean(x = Chl, 4, align = "right", fill = NA)) %>% 
+  mutate(Turbidity.hour = rollmean(x = Turbidity, 4, align = "right", fill = NA))
+
+
+p = ggplot(plot_storm_data, aes(Discharge, chl.hour)) +
+  geom_point(aes(colour = datetime), size = 2) + 
+  geom_path(aes(colour = datetime), size = 1) + 
+  theme_light()
+
+q= ggplot(plot_storm_data, aes(Discharge, Turbidity.hour)) +
+  geom_point(aes(colour = datetime), size = 2) + 
+  geom_path(aes(colour = datetime), size = 1) + 
+  theme_light()
+
+grid.arrange(p,q,ncol=1)
+
+
+
+```
+
