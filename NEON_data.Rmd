@@ -6,11 +6,14 @@ output: html_document
 ---
 
 *Using package 'neonUtilities' to compile NEON water quality data*
+Select water quality data for two of the core sites with contrasting environmental settings:
+MAYF (MayField Creek, AL) 
+MAP = 1350 mm; Ozarks Complex 	; Deciduous Forest
 ```{r setup, include=FALSE}
 library(neonUtilities) ; library(data.table) ; library(dplyr)
-#select water quality data for two of the core sites with contrasting environmental settings, WALK (Walker Branch, TN Appalachians) and ARIK (Arikaree River, CO Central Plains):
-waterChem = loadByProduct(dpID="DP1.20288.001", site=c("WALK"), startdate="2016-04", enddate="2020-08") #water quality data including chl and turbidity
-waterFlow = loadByProduct(dpID="DP1.20016.001", site=c("WALK"), startdate="2016-04", enddate="2020-08") #water quantity as depth
+
+waterChem = loadByProduct(dpID="DP1.20288.001", site=c("MAYF"), startdate="2016-04", enddate="2020-08", check.size = FALSE) #water quality data including chl and turbidity
+waterFlow = loadByProduct(dpID="DP1.20016.001", site=c("MAYF"), startdate="2016-04", enddate="2020-08", check.size = FALSE) #water quantity as depth
 ###############################IF NEEDED; Discharge data per site are available to transform dpeth into Q
  
 #extract data from downloaded files
@@ -45,5 +48,76 @@ chem_data_subset30m$datetime <- as.POSIXct(chem_data_subset30m$datetime, format=
                                            origin=(as.POSIXlt('1970-01-01')),
                                            tz="UTC")
 
+flow_data_subset = flow_data[, c("startDateTime","surfacewaterElevMean")]
+flow_data_subset = flow_data_subset[complete.cases(flow_data_subset), ] #remove NAs
+rownames(flow_data_subset) <- NULL #remove rownames
+colnames(flow_data_subset) <- c("datetime", "depth")
+
+flow_data_subset30m = flow_data_subset %>%
+  group_by(datetime) %>%
+  summarize(depth.avg = min(depth, na.rm = TRUE)) #taking the min and not the mean to deal with weird data jumps between 30 second intervals in original data
+
+
+#and finally merge datasets
+MAYF_merged_data = inner_join(flow_data_subset30m, chem_data_subset30m, by="datetime")
+plot_subset = MAYF_merged_data[53000:63000,]
+plot(plot_subset$chl.avg, plot_subset$turb.avg,xlim=c(0,4),ylim=c(0,300))
+```
+
+MCDI (McDiffett Creek, KS Praire Peninsula):
+MAP = 860 mm; Cultivated Crops Grassland/Herbaceous
+```{r setup, include=FALSE}
+library(neonUtilities) ; library(data.table) ; library(dplyr)
+#select water quality data for two of the core sites with contrasting environmental settings, WALK (Walker Branch, TN Appalachians) and ARIK (Arikaree River, CO Central Plains):
+waterChem = loadByProduct(dpID="DP1.20288.001", site=c("MCDI"), startdate="2016-04", enddate="2020-08", check.size = FALSE) #water quality data including chl and turbidity
+waterFlow = loadByProduct(dpID="DP1.20016.001", site=c("MCDI"), startdate="2016-04", enddate="2020-08", check.size = FALSE) #water quantity as depth
+###############################IF NEEDED; Discharge data per site are available to transform dpeth into Q
+ 
+#extract data from downloaded files
+chem_data = as.data.frame(waterChem[[4]])
+flow_data = as.data.frame(waterFlow[[1]])
+
+#subset each dataset, normalize datetime, and merge
+chem_data_subset = chem_data[, c("startDateTime","chlorophyll","turbidity")]
+chem_data_subset = chem_data_subset[complete.cases(chem_data_subset), ] #remove NAs
+rownames(chem_data_subset) <- NULL #remove rownames
+
+#need to validate the time zone used in original data: 
+waterChem[[3]] #look for yyyy-MM-dd'T'HH:mm:ss'Z' to confirm UTC
+chem_data_subset$datetime = as.vector(as.POSIXct(chem_data_subset$startDateTime, format="%m/%d/%y %H:%M:%S", tz="UTC"))
+
+#reshape datetime vector into 30min intervals
+a <- as.vector(chem_data_subset$datetime)
+chem_data_subset$datetime <-as.vector(as.POSIXlt(round(as.double(a)/(30*60))*(30*60),
+                                        origin=(as.POSIXlt('1970-01-01')), 
+                                        tz="UTC"))
+
+#convert date from 'POSIXlt' class to 'double' to allow aggregation with dplyr
+chem_data_subset$datetime <- as.double(chem_data_subset$datetime) 
+
+#aggregate by date 
+chem_data_subset30m = chem_data_subset %>%
+  group_by(datetime) %>%
+  summarize(chl.avg = min(chlorophyll, na.rm = TRUE), turb.avg = min(turbidity, na.rm = TRUE)) #taking the min and not the mean to deal with weird data jumps between 30 second intervals in original data
+
+#reformat datetime back prior merging with flow data
+chem_data_subset30m$datetime <- as.POSIXct(chem_data_subset30m$datetime, format="%m/%d/%Y %H:%M:%S", 
+                                           origin=(as.POSIXlt('1970-01-01')),
+                                           tz="UTC")
+
+flow_data_subset = flow_data[, c("startDateTime","surfacewaterElevMean")]
+flow_data_subset = flow_data_subset[complete.cases(flow_data_subset), ] #remove NAs
+rownames(flow_data_subset) <- NULL #remove rownames
+colnames(flow_data_subset) <- c("datetime", "depth")
+
+flow_data_subset30m = flow_data_subset %>%
+  group_by(datetime) %>%
+  summarize(depth.avg = min(depth, na.rm = TRUE)) #taking the min and not the mean to deal with weird data jumps between 30 second intervals in original data
+
+
+#and finally merge datasets
+MCDI_merged_data = inner_join(flow_data_subset30m, chem_data_subset30m, by="datetime")
+plot_subset = MCDI_merged_data
+plot(plot_subset$datetime, plot_subset$depth.avg)
 ```
 
