@@ -5,11 +5,45 @@ date: "9/29/2020"
 output: html_document
 ---
 
-Using package 'neonUtilities' to compile NEON water quality data
+*Using package 'neonUtilities' to compile NEON water quality data*
 ```{r setup, include=FALSE}
+library(neonUtilities) ; library(data.table) ; library(dplyr)
+#select water quality data for two of the core sites with contrasting environmental settings, WALK (Walker Branch, TN Appalachians) and ARIK (Arikaree River, CO Central Plains):
+waterChem = loadByProduct(dpID="DP1.20288.001", site=c("WALK"), startdate="2016-04", enddate="2020-08") #water quality data including chl and turbidity
+waterFlow = loadByProduct(dpID="DP1.20016.001", site=c("WALK"), startdate="2016-04", enddate="2020-08") #water quantity as depth
+###############################IF NEEDED; Discharge data per site are available to transform dpeth into Q
+ 
+#extract data from downloaded files
+chem_data = as.data.frame(waterChem[[4]])
+flow_data = as.data.frame(waterFlow[[1]])
 
+#subset each dataset, normalize datetime, and merge
+chem_data_subset = chem_data[, c("startDateTime","chlorophyll","turbidity")]
+chem_data_subset = chem_data_subset[complete.cases(chem_data_subset), ] #remove NAs
+rownames(chem_data_subset) <- NULL #remove rownames
 
+#need to validate the time zone used in original data: 
+waterChem[[3]] #look for yyyy-MM-dd'T'HH:mm:ss'Z' to confirm UTC
+chem_data_subset$datetime = as.vector(as.POSIXct(chem_data_subset$startDateTime, format="%m/%d/%y %H:%M:%S", tz="UTC"))
 
+#reshape datetime vector into 30min intervals
+a <- as.vector(chem_data_subset$datetime)
+chem_data_subset$datetime <-as.vector(as.POSIXlt(round(as.double(a)/(30*60))*(30*60),
+                                        origin=(as.POSIXlt('1970-01-01')), 
+                                        tz="UTC"))
+
+#convert date from 'POSIXlt' class to 'double' to allow aggregation with dplyr
+chem_data_subset$datetime <- as.double(chem_data_subset$datetime) 
+
+#aggregate by date 
+chem_data_subset30m = chem_data_subset %>%
+  group_by(datetime) %>%
+  summarize(chl.avg = min(chlorophyll, na.rm = TRUE), turb.avg = min(turbidity, na.rm = TRUE)) #taking the min and not the mean to deal with weird data jumps between 30 second intervals in original data
+
+#reformat datetime back prior merging with flow data
+chem_data_subset30m$datetime <- as.POSIXct(chem_data_subset30m$datetime, format="%m/%d/%Y %H:%M:%S", 
+                                           origin=(as.POSIXlt('1970-01-01')),
+                                           tz="UTC")
 
 ```
 
