@@ -5,10 +5,11 @@ date: "9/25/2020"
 output: html_document
 ---
 
+*Plotting Hysteresis per event*
 ```{r setup, include=FALSE}
 library (ggplot2) ; library(lubridate) ; library(dplyr) ; library(zoo) ; library(RColorBrewer) ; library(gridExtra)
-setwd("R:/EcosystemEcologyLab/BRANDYWINEdataDirectory/DataInDevelopment/Aggregations/BRA_compiled/BrandywineEventsData/WILMA STORMS")
-raw_data <- read.csv("BRA_WILMA_Oct17-18_2019_Storm.csv",head=T,sep=",") # load storm event file data
+setwd("R:/EcosystemEcologyLab/BRANDYWINEdataDirectory/DataInDevelopment/Aggregations/BRA_compiled/BrandywineEventsData/BAM STORMS")
+raw_data <- read.csv("BRA_BAM_Apr12-14_2019_Storm.csv",head=T,sep=",") # load storm event file data
 
 #upper boundary of Stromflow observations
 up_Storm = min(which(raw_data[,"FlowType"] == "Stormflow")) - 20
@@ -36,7 +37,23 @@ q= ggplot(plot_storm_data, aes(Discharge, Turbidity.hour)) +
 
 grid.arrange(p,q,ncol=1)
 
+```
+
+*Plotting Hysteresis per event*
+Calculate Hysteresis Index (HI) and Flushing Index (FI) following Kincaid et al 20202 and Vaughan et al. 2017
+```{r}
+#first Q and C are normalized
+Qmax = max(storm_data$Discharge)
+Qmin = min(storm_data$Discharge)
+Chlmax = max(storm_data$Chl)
+Chlmin = min(storm_data$Chl)
+Turmax = max(storm_data$Turbidity)
+Turmin = min(storm_data$Turbidity)
+
+storm_data$Discharge_norm = (storm_data$Discharge - Qmin)/(Qmax -Qmin)
+
 
 
 ```
+
 
