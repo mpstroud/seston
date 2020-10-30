@@ -8,13 +8,13 @@ output: html_document
 *Plotting Hysteresis per event*
 ```{r setup, include=FALSE}
 library (ggplot2) ; library(lubridate) ; library(dplyr) ; library(zoo) ; library(RColorBrewer) ; library(gridExtra)
-setwd("R:/EcosystemEcologyLab/BRANDYWINEdataDirectory/DataInDevelopment/Aggregations/BRA_compiled/BrandywineEventsData/BAM STORMS")
-raw_data <- read.csv("BRA_BAM_Apr12-14_2019_Storm.csv",head=T,sep=",") # load storm event file data
+setwd("R:/EcosystemEcologyLab/BRANDYWINEdataDirectory/DataInDevelopment/Aggregations/BRA_compiled/BrandywineEventsData/WILMA STORMS")
+raw_data <- read.csv("BRA_WILMA_Oct17-18_2019_Storm.csv",head=T,sep=",") # load storm event file data
 
 #upper boundary of Stromflow observations
-up_Storm = min(which(raw_data[,"FlowType"] == "Stormflow")) - 20
+up_Storm = min(which(raw_data[,"FlowType"] == "Stormflow")) 
 #lower boundary of Stromflow observations
-dw_Storm = max(which(raw_data[,"FlowType"] == "Stormflow")) + 20
+dw_Storm = max(which(raw_data[,"FlowType"] == "Stormflow")) 
 
 storm_data = raw_data[(up_Storm:dw_Storm),] #selecting 20 observation above and below the Storm hydrograph
 storm_data$date = as.Date(storm_data$date, "%m/%d/%Y") #convert date as character into a class 'Date' column that lubridate recognizes 
@@ -23,7 +23,6 @@ storm_data$datetime = with(storm_data, ymd(date) + hms(time)) #create a variable
 plot_storm_data = storm_data %>% 
   mutate(chl.hour = rollmean(x = Chl, 4, align = "right", fill = NA)) %>% 
   mutate(Turbidity.hour = rollmean(x = Turbidity, 4, align = "right", fill = NA))
-
 
 p = ggplot(plot_storm_data, aes(Discharge, chl.hour)) +
   geom_point(aes(colour = datetime), size = 2) + 
@@ -50,10 +49,28 @@ Chlmin = min(storm_data$Chl)
 Turmax = max(storm_data$Turbidity)
 Turmin = min(storm_data$Turbidity)
 
-storm_data$Discharge_norm = (storm_data$Discharge - Qmin)/(Qmax -Qmin)
+storm_data$Discharge_norm = (storm_data$Discharge - Qmin)/(Qmax - Qmin)
+storm_data$Chlorophyll_norm = (storm_data$Chl - Chlmin)/(Chlmax - Chlmin)
+storm_data$Turbidity_norm = (storm_data$Turbidity - Turmin)/(Turmax - Turmin)
 
 
+a = rep("rising",max(which(storm_data$Discharge == Qmax)))  #select rising cases
+b = rep("falling",nrow(storm_data) - max(which(storm_data$Discharge == Qmax))) #rest are falling
+storm_data$limb = c(a,b) #to create a limb factor
 
+storm_data$Discharge_norm = round(storm_data$Discharge_norm, 2) #round normalized Q to 2 decimals
+storm_data$Discharge_norm = as.factor(storm_data$Discharge_norm) #make it a factor
+rising_data = subset(storm_data, limb == "rising") ; falling_data = subset(storm_data, limb == "falling") #separate by limb
+Q_merged_data = inner_join(rising_data, falling_data, by = "Discharge_norm") #.x is rising and .y is falling
+
+
+#calculate final parameters for CHLOROPHYLL AND TURBIDITY and put them in a table
+HI_chl = mean(Q_merged_data$Chlorophyll_norm.x - Q_merged_data$Chlorophyll_norm.y)
+HI_tur = mean(Q_merged_data$Turbidity_norm.x - Q_merged_data$Turbidity_norm.y) 
+FI_chl = mean(storm_data[which(storm_data$Discharge == Qmax), "Chlorophyll_norm"]) - mean(rising_data[which(rising_data$Discharge == min(rising_data$Discharge)), "Chlorophyll_norm"])
+FI_tur = mean(storm_data[which(storm_data$Discharge == Qmax), "Turbidity_norm"]) - mean(rising_data[which(rising_data$Discharge == min(rising_data$Discharge)), "Turbidity_norm"])
+
+as.numeric(c(HI_chl, FI_chl, HI_tur, FI_tur, Qmax, Qmin, Chlmax, Turmax))
 ```
 
 
