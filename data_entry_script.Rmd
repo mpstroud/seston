@@ -16,18 +16,19 @@ The script will do the following:
 ###########################################################
 Modifiy the following information before running the script
 ```{r}
-input_directory = "~/Users/marc_peipoch/Dropbox/COVID_TempDirectories/BrandywineSeston"
-output_directory = "~/Users/marc_peipoch/Dropbox/COVID_TempDirectories/BrandywineSeston"
-aggregfile = "BRA_BAM_Chl_Mar2020.csv"
+input_directory = "~/Dropbox/COVID_TempDirectories/BrandywineSeston"
+output_directory = "~/Dropbox/manuscripts/RiverPlankton/working_files"
+aggregfile = "BRA_WILMA_Chl_Oct2020.csv"
+new_aggregfile = "BRA_WILMA_Chl_Oct2020.csv"
 averaged_file = "BRA_WILMA_15min.csv"
 q_file = "BRA_WILMA_q.csv"
 t_file = "BRA_WILMA_t.csv"
 qdaily_file = "BRA_WILMA_qdaily.csv"
 tdaily_file = "BRA_WILMA_tdaily.csv"
-lastfile = "BRA_WILMA_Aug23-Sep42019.csv"
-startQdate = "2019-01-01"
-endQdate = "2020-03-01"
-siteQcode = "01481000" #01481000 for BAM and 01481500 for WILMA
+lastfile = "WILMArawCSV2.csv"
+startQdate = "2019-06-01"
+endQdate = "2020-11-26"
+siteQcode = "01481500" #01481000 for BAM and 01481500 for WILMA
 
 ```
 
@@ -56,7 +57,7 @@ chldata$datetime<- as.vector(as.POSIXct(paste(chldata$date, chldata$time), forma
 setwd(output_directory)
 
 #output #1, aggregated dataset of chl and temperature every 5min
-write.csv(chldata, file = aggregfile) 
+write.csv(chldata, file = new_aggregfile) 
 
 #####DISCHARGE data input via URL from USGS using dataRetrieval package
 
@@ -84,9 +85,9 @@ end.date <- endQdate
                             endDate = end.date) 
 
 Qtemp = BAM_q[,3:4]; colnames(Qtemp)<-c("date","Discharge")
-write.csv(Qtemp, file = q_file) #output #2, aggregated dataset of chl and temperature every 5min
+write.csv(Qtemp, file = q_file) #output #2, aggregated dataset of Q every 15min
 Qtemp = BAM_q_daily[,3:4]; colnames(Qtemp)<-c("date","Discharge")
-write.csv(Qtemp, file = qdaily_file) #output #2, aggregated dataset of chl and temperature every 5min
+write.csv(Qtemp, file = qdaily_file) #output #3, aggregated dataset of Q daily
 
 ###repeat last steps for Turbidity instead of Q; dates and site remain the same
 ###checking parameter code
@@ -111,9 +112,9 @@ end.date <- endQdate
                             endDate = end.date) 
 
 Ttemp = BAM_t[,3:4]; colnames(Ttemp) <- c("date","Turbidity")
-write.csv(Ttemp, file = t_file) #output #2, aggregated dataset of chl and temperature every 5min
+write.csv(Ttemp, file = t_file) #output #4, aggregated dataset of Turb every 15min
 Ttemp = BAM_t_daily[,3:4]; colnames(Ttemp)<-c("date","Turbidity")
-write.csv(Ttemp, file = tdaily_file) #output #2, aggregated dataset of chl and temperature every 5min
+write.csv(Ttemp, file = tdaily_file) #output #5, aggregated dataset of Turb daily
 
 #####MOVING AVERAGE SMOOTHING OF ORIGINAL TIME SERIES
 #####Generate a merged dataset that contains chl conc. averaged every 15min and paired with discharge data
@@ -151,7 +152,7 @@ Q$date <- as.POSIXct(Q$date, format="%m/%d/%Y %H:%M:%S", tz="EST")
 Turb$date <- as.POSIXct(Turb$date, format="%m/%d/%Y %H:%M:%S", tz="EST") 
 
 QTurb <- right_join(Q,Turb,by = "date") 
-dataset.15min <- right_join(QTurb,dataset.15min,by = "date") #15min averaged dataset
+dataset.15min <- right_join(dataset.15min,QTurb,by = "date") #15min averaged dataset
 
 #output #3, aggregated dataset of chl and temperature every 5min
 write.csv(dataset.15min, file = averaged_file) 
