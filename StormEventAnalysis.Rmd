@@ -5,11 +5,99 @@ date: "9/25/2020"
 output: html_document
 ---
 
-*Plotting Hysteresis per event*
+*Hysteresis indices per event*
+Calculates Hysteresis Index (HI) and Flushing Index (FI) for both Chlorophyll and Turbidity
+```{r setup, include=FALSE}
+library (ggplot2) ; library(lubridate) ; library(dplyr) ; library(zoo) ; library(RColorBrewer) ; library(gridExtra) ; library(DescTools)
+setwd("C:/Users/mpeipoch/Dropbox/manuscripts/RiverPlankton/working_files/stormfiles")
+raw_data <- read.csv("BAM_A_1Apr2019.csv",head=T,sep=",") # load storm event file data
+
+#extract min/max values and first value for Q, Chl, and Turb 
+Qmax = max(raw_data$Q) ; Qmin = min(raw_data$Q) ; Qfirst = raw_data[1,2]
+Chlmax = max(raw_data$Chl) ; Chlmin = min(raw_data$Chl)
+Turbmax = max(raw_data$Turb) ; Turbmin = min(raw_data$Turb)
+
+norm_data = raw_data #end for raw_data
+#normalize Q, Chl, and Turb
+norm_data$Q_norm = 
+  (norm_data$Q - Qmin)/(Qmax - Qmin)
+norm_data$Chlorophyll_norm = 
+  (norm_data$Chl - Chlmin)/(Chlmax - Chlmin)
+norm_data$Turbidity_norm = 
+  (norm_data$Turb - Turbmin)/(Turbmax - Turbmin)
+
+a = rep("rising",max(which(norm_data$Q == Qmax)))  #mark rising cases
+b = rep("falling",nrow(norm_data) - max(which(norm_data$Q == Qmax))) #rest are falling
+norm_data$limb = c(a,b) #create a limb factor
+
+#Find pairs of Q-norm and C-norm at 1% intervals in the RISING LIMB---------------------------------rising limb
+
+rise_data  = norm_data %>%
+  filter(., limb == "rising") %>%
+  select(!(Turb:Temp)) %>%
+  group_by(Q_norm) %>%
+  summarise(chl.avg = mean(Chlorophyll_norm, na.rm = TRUE), 
+            turb.avg = mean(Turbidity_norm, na.rm = TRUE)) 
+ 
+rise_data = as.data.frame(rise_data) # remove tibble info
+
+rise_Chl_interpolated = as.data.frame(approx(rise_data$Q_norm, rise_data$chl.avg,method = "linear", n = 100))
+colnames(rise_Chl_interpolated) <- c("Qnorm", "Chlnorm") #for chlorophyll
+rise_Chl_interpolated = round(rise_Chl_interpolated,2)
+
+rise_Turb_interpolated = as.data.frame(approx(rise_data$Q_norm, rise_data$turb.avg, method = "linear", n = 100))
+colnames(rise_Turb_interpolated) <- c("Qnorm", "Turbnorm") #for Turbidity
+rise_Turb_interpolated = round(rise_Turb_interpolated,2)
+
+#Find pairs of Q-norm and C-norm at 1% intervals in the FALLING LIMB---------------------------------falling limb
+
+fall_data  = norm_data %>%
+  filter(., limb == "falling") %>%
+  select(!(Turb:Temp)) %>%
+  group_by(Q_norm) %>%
+  summarise(chl.avg = mean(Chlorophyll_norm, na.rm = TRUE), 
+            turb.avg = mean(Turbidity_norm, na.rm = TRUE)) 
+ 
+fall_data = as.data.frame(fall_data) # remove tibble info
+
+fall_Chl_interpolated = as.data.frame(approx(fall_data$Q_norm, fall_data$chl.avg,method = "linear", n = 100))
+colnames(fall_Chl_interpolated) <- c("Qnorm", "Chlnorm") #for chlorophyll
+fall_Chl_interpolated = round(fall_Chl_interpolated,2)
+
+fall_Turb_interpolated = as.data.frame(approx(fall_data$Q_norm, fall_data$turb.avg, method = "linear", n = 100))
+colnames(fall_Turb_interpolated) <- c("Qnorm", "Turbnorm") #for Turbidity
+fall_Turb_interpolated = round(fall_Turb_interpolated,2)
+
+#merge and calculate HIs
+#----Chl----------
+merged_Chl_data = inner_join(rise_Chl_interpolated,fall_Chl_interpolated, by = "Qnorm")
+merged_Chl_data$HI = merged_Chl_data$Chlnorm.x - merged_Chl_data$Chlnorm.y
+
+#------Turb-------
+merged_Turb_data = inner_join(rise_Turb_interpolated,fall_Turb_interpolated, by = "Qnorm")
+merged_Turb_data$HI = merged_Turb_data$Turbnorm.x - merged_Turb_data$Turbnorm.y
+
+
+#calculate final parameters for CHLOROPHYLL AND TURBIDITY and put them in a table
+HI_chl = mean(merged_Chl_data$HI)
+HI_tur = mean(merged_Turb_data$HI)
+
+FI_chl = mean(norm_data[which(norm_data$Q == Qmax), "Chlorophyll_norm"]) - 
+            mean(norm_data[which(norm_data$Q == Qmin), "Chlorophyll_norm"])
+
+FI_tur = mean(norm_data[which(norm_data$Q == Qmax), "Turbidity_norm"]) - 
+            mean(norm_data[which(norm_data$Q == Qmin), "Turbidity_norm"])
+
+as.numeric(c(HI_chl, FI_chl, HI_tur, FI_tur, Qmax, Qmin, Chlmax, Turbmax))
+
+```
+
+
+*Hysteresis indices per event*
 ```{r setup, include=FALSE}
 library (ggplot2) ; library(lubridate) ; library(dplyr) ; library(zoo) ; library(RColorBrewer) ; library(gridExtra)
-setwd("R:/EcosystemEcologyLab/BRANDYWINEdataDirectory/DataInDevelopment/Aggregations/BRA_compiled/BrandywineEventsData/WILMA STORMS")
-raw_data <- read.csv("BRA_WILMA_Oct17-18_2019_Storm.csv",head=T,sep=",") # load storm event file data
+setwd("C:/Users/mpeipoch/Dropbox/manuscripts/RiverPlankton/working_files/stormfiles")
+raw_data <- read.csv("BAM_A_1Apr2019.csv",head=T,sep=",") # load storm event file data
 
 #upper boundary of Stromflow observations
 up_Storm = min(which(raw_data[,"FlowType"] == "Stormflow")) 
@@ -38,39 +126,5 @@ grid.arrange(p,q,ncol=1)
 
 ```
 
-*Plotting Hysteresis per event*
-Calculate Hysteresis Index (HI) and Flushing Index (FI) following Kincaid et al 20202 and Vaughan et al. 2017
-```{r}
-#first Q and C are normalized
-Qmax = max(storm_data$Discharge)
-Qmin = min(storm_data$Discharge)
-Chlmax = max(storm_data$Chl)
-Chlmin = min(storm_data$Chl)
-Turmax = max(storm_data$Turbidity)
-Turmin = min(storm_data$Turbidity)
-
-storm_data$Discharge_norm = (storm_data$Discharge - Qmin)/(Qmax - Qmin)
-storm_data$Chlorophyll_norm = (storm_data$Chl - Chlmin)/(Chlmax - Chlmin)
-storm_data$Turbidity_norm = (storm_data$Turbidity - Turmin)/(Turmax - Turmin)
-
-
-a = rep("rising",max(which(storm_data$Discharge == Qmax)))  #select rising cases
-b = rep("falling",nrow(storm_data) - max(which(storm_data$Discharge == Qmax))) #rest are falling
-storm_data$limb = c(a,b) #to create a limb factor
-
-storm_data$Discharge_norm = round(storm_data$Discharge_norm, 2) #round normalized Q to 2 decimals
-storm_data$Discharge_norm = as.factor(storm_data$Discharge_norm) #make it a factor
-rising_data = subset(storm_data, limb == "rising") ; falling_data = subset(storm_data, limb == "falling") #separate by limb
-Q_merged_data = inner_join(rising_data, falling_data, by = "Discharge_norm") #.x is rising and .y is falling
-
-
-#calculate final parameters for CHLOROPHYLL AND TURBIDITY and put them in a table
-HI_chl = mean(Q_merged_data$Chlorophyll_norm.x - Q_merged_data$Chlorophyll_norm.y)
-HI_tur = mean(Q_merged_data$Turbidity_norm.x - Q_merged_data$Turbidity_norm.y) 
-FI_chl = mean(storm_data[which(storm_data$Discharge == Qmax), "Chlorophyll_norm"]) - mean(rising_data[which(rising_data$Discharge == min(rising_data$Discharge)), "Chlorophyll_norm"])
-FI_tur = mean(storm_data[which(storm_data$Discharge == Qmax), "Turbidity_norm"]) - mean(rising_data[which(rising_data$Discharge == min(rising_data$Discharge)), "Turbidity_norm"])
-
-as.numeric(c(HI_chl, FI_chl, HI_tur, FI_tur, Qmax, Qmin, Chlmax, Turmax))
-```
 
 
