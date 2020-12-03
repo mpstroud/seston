@@ -12,8 +12,8 @@ setwd("C:/Users/mpeipoch/Dropbox/manuscripts/RiverPlankton/working_files/stormfi
 
 ```{r}
 file.names <- dir(getwd(), pattern =".csv") 
-df<-data.frame(matrix(ncol = 3, nrow = 0)) 
-colnames(df) <- c("date","Chl_export","H2O_export")
+df<-data.frame(matrix(ncol = 4, nrow = 0)) 
+colnames(df) <- c("date","Chl_export","H2O_export","rising_time")
 
 for(i in 1:length(file.names)){  
               
@@ -27,15 +27,16 @@ export_Chl = sum(export)
 export = ((raw_data$Q * 0.0283168) * (15*60)) * 0.001 # units will be in tones3 of H2O
 export_H2O = sum(export)
 
-Qcorrected = raw_data$Q - Qmin
 Qmax = max(raw_data$Q) ; Qmin = min(raw_data$Q)
 
+peak_start_time = min(which(raw_data$Q == Qmin))
+peak_time = which(raw_data$Q == Qmax)
 
-peak_time = (which(raw_data$Q == Qmax))*15
+rising_time = (peak_time - peak_start_time)*15
 
-results <- list(date_storm,export_Chl,export_H2O)
+results <- list(date_storm,export_Chl,export_H2O,rising_time)
 results = as.data.frame(as.vector(results))
-colnames(results) <- c("date","Chl_export","H2O_export") 
+colnames(results) <- c("date","Chl_export","H2O_export","rising_time") 
 df<-rbind(df,results)
 
 }
