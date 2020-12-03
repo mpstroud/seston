@@ -9,8 +9,19 @@ output: html_document
 Calculates Hysteresis Index (HI) and Flushing Index (FI) for both Chlorophyll and Turbidity
 ```{r setup, include=FALSE}
 library (ggplot2) ; library(lubridate) ; library(dplyr) ; library(zoo) ; library(RColorBrewer) ; library(gridExtra) ; library(DescTools)
-setwd("C:/Users/mpeipoch/Dropbox/manuscripts/RiverPlankton/working_files/stormfiles")
-raw_data <- read.csv("BAM_A_1Apr2019.csv",head=T,sep=",") # load storm event file data
+setwd("/Users/marc_peipoch/Dropbox/manuscripts/RiverPlankton/working_files/stormfiles")
+```
+
+```{r}
+file.names <- dir(getwd(), pattern =".csv") 
+df<-data.frame(matrix(ncol = 9, nrow = 0)) 
+colnames(df) <- c("date","HI_chl","FI_chl","HI_turb","FI_turb","Qmax","Qmin","Chlmax","Turbmax") #name for the nine vars: date_storm,HI_chl, FI_chl, HI_tur, FI_tur, Qmax, Qmin, Chlmax, Turbmax
+
+for(i in 1:length(file.names)){  
+              
+         date_storm = file.names[i]
+         file <- read.table(file.names[i],header=TRUE, sep=",", stringsAsFactors=TRUE)
+           raw_data <- file
 
 #extract min/max values and first value for Q, Chl, and Turb 
 Qmax = max(raw_data$Q) ; Qmin = min(raw_data$Q) ; Qfirst = raw_data[1,2]
@@ -88,8 +99,16 @@ FI_chl = mean(norm_data[which(norm_data$Q == Qmax), "Chlorophyll_norm"]) -
 FI_tur = mean(norm_data[which(norm_data$Q == Qmax), "Turbidity_norm"]) - 
             mean(norm_data[which(norm_data$Q == Qmin), "Turbidity_norm"])
 
-as.numeric(c(HI_chl, FI_chl, HI_tur, FI_tur, Qmax, Qmin, Chlmax, Turbmax))
 
+results <- list(date_storm,HI_chl, FI_chl, HI_tur, FI_tur, Qmax, Qmin, Chlmax, Turbmax)
+results = as.data.frame(as.vector(results))
+colnames(results) <- c("date","HI_chl","FI_chl","HI_turb","FI_turb","Qmax","Qmin","Chlmax","Turbmax") 
+df<-rbind(df,results)
+
+}
+
+
+write.csv(df,file = "/Users/marc_peipoch/Dropbox/manuscripts/RiverPlankton/working_files/StormIndices.csv") #
 ```
 
 
