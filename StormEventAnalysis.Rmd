@@ -9,7 +9,7 @@ output: html_document
 Calculates Hysteresis Index (HI) and Flushing Index (FI) for both Chlorophyll and Turbidity
 ```{r setup, include=FALSE}
 library (ggplot2) ; library(lubridate) ; library(dplyr) ; library(zoo) ; library(RColorBrewer) ; library(gridExtra) ; library(DescTools)
-setwd("/Users/marc_peipoch/Dropbox/manuscripts/RiverPlankton/working_files/stormfiles")
+setwd("C:/Users/mpeipoch/Dropbox/manuscripts/RiverPlankton/working_files/stormfiles")
 ```
 
 ```{r}
@@ -27,6 +27,8 @@ for(i in 1:length(file.names)){
 Qmax = max(raw_data$Q) ; Qmin = min(raw_data$Q) ; Qfirst = raw_data[1,2]
 Chlmax = max(raw_data$Chl) ; Chlmin = min(raw_data$Chl)
 Turbmax = max(raw_data$Turb) ; Turbmin = min(raw_data$Turb)
+Chlmedian = median(raw_data$Chl)
+Turbmedian = median(raw_data$Turb)
 
 norm_data = raw_data #end for raw_data
 #normalize Q, Chl, and Turb
@@ -100,7 +102,7 @@ FI_tur = mean(norm_data[which(norm_data$Q == Qmax), "Turbidity_norm"]) -
             mean(norm_data[which(norm_data$Q == Qmin), "Turbidity_norm"])
 
 
-results <- list(date_storm,HI_chl, FI_chl, HI_tur, FI_tur, Qmax, Qmin, Chlmax, Turbmax)
+results <- list(date_storm,HI_chl, FI_chl, HI_tur, FI_tur, Qmax, Qmin, Chlmedian, Turbmedian)
 results = as.data.frame(as.vector(results))
 colnames(results) <- c("date","HI_chl","FI_chl","HI_turb","FI_turb","Qmax","Qmin","Chlmax","Turbmax") 
 df<-rbind(df,results)
@@ -108,7 +110,7 @@ df<-rbind(df,results)
 }
 
 
-write.csv(df,file = "/Users/marc_peipoch/Dropbox/manuscripts/RiverPlankton/working_files/StormIndices.csv") #
+write.csv(df,file = "C:/Users/mpeipoch/Dropbox/manuscripts/RiverPlankton/working_files/StormIndices.csv") #
 ```
 
 

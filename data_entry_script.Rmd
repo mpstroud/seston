@@ -16,19 +16,19 @@ The script will do the following:
 ###########################################################
 Modifiy the following information before running the script
 ```{r}
-input_directory = "~/Dropbox/COVID_TempDirectories/BrandywineSeston"
-output_directory = "~/Dropbox/manuscripts/RiverPlankton/working_files"
-aggregfile = "BRA_WILMA_Chl_Oct2020.csv"
-new_aggregfile = "BRA_WILMA_Chl_Oct2020.csv"
-averaged_file = "BRA_WILMA_15min.csv"
-q_file = "BRA_WILMA_q.csv"
-t_file = "BRA_WILMA_t.csv"
-qdaily_file = "BRA_WILMA_qdaily.csv"
-tdaily_file = "BRA_WILMA_tdaily.csv"
-lastfile = "WILMArawCSV2.csv"
-startQdate = "2019-06-01"
-endQdate = "2020-11-26"
-siteQcode = "01481500" #01481000 for BAM and 01481500 for WILMA
+input_directory = "C:/Users/mpeipoch/Dropbox/COVID_TempDirectories/BrandywineSeston"
+output_directory = "C:/Users/mpeipoch/Dropbox/manuscripts/RiverPlankton/working_files"
+aggregfile = "BRA_BAM_Chl_Nov2020.csv"
+new_aggregfile = "BRA_BAM_Chl_Dec2020.csv"
+averaged_file = "BRA_BAM_15min.csv"
+q_file = "BRA_BAM_q.csv"
+t_file = "BRA_BAM_t.csv"
+qdaily_file = "BRA_BAM_qdaily.csv"
+tdaily_file = "BRA_BAM_tdaily.csv"
+lastfile = "SL084rawCSV2.1.csv"
+startQdate = "2019-03-01"
+endQdate = "2020-12-3"
+siteQcode = "01481000" #01481000 for BAM and 01481500 for WILMA
 
 ```
 
@@ -152,7 +152,7 @@ Q$date <- as.POSIXct(Q$date, format="%m/%d/%Y %H:%M:%S", tz="EST")
 Turb$date <- as.POSIXct(Turb$date, format="%m/%d/%Y %H:%M:%S", tz="EST") 
 
 QTurb <- right_join(Q,Turb,by = "date") 
-dataset.15min <- right_join(dataset.15min,QTurb,by = "date") #15min averaged dataset
+dataset.15min <- left_join(QTurb,dataset.15min,by = "date") #15min averaged dataset
 
 #output #3, aggregated dataset of chl and temperature every 5min
 write.csv(dataset.15min, file = averaged_file) 

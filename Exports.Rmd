@@ -1,0 +1,46 @@
+---
+title: "Total Export"
+output: html_document
+---
+
+*Calculate sum of Chl export per event*
+Calculates Hysteresis Index (HI) and Flushing Index (FI) for both Chlorophyll and Turbidity
+```{r setup, include=FALSE}
+library (ggplot2) ; library(lubridate) ; library(dplyr) ; library(zoo) ; library(RColorBrewer) ; library(gridExtra) ; library(DescTools)
+setwd("C:/Users/mpeipoch/Dropbox/manuscripts/RiverPlankton/working_files/stormfiles")
+```
+
+```{r}
+file.names <- dir(getwd(), pattern =".csv") 
+df<-data.frame(matrix(ncol = 3, nrow = 0)) 
+colnames(df) <- c("date","Chl_export","H2O_export")
+
+for(i in 1:length(file.names)){  
+              
+         date_storm = file.names[i]
+         file <- read.table(file.names[i],header=TRUE, sep=",", stringsAsFactors=TRUE)
+         raw_data <- file
+
+export = (((raw_data$Q * 0.0283168) * (raw_data$Chl)) * (15*60))/1000000 # units will be in kg of Chl
+export_Chl = sum(export)
+
+export = ((raw_data$Q * 0.0283168) * (15*60)) * 0.001 # units will be in tones3 of H2O
+export_H2O = sum(export)
+
+Qcorrected = raw_data$Q - Qmin
+Qmax = max(raw_data$Q) ; Qmin = min(raw_data$Q)
+
+
+peak_time = (which(raw_data$Q == Qmax))*15
+
+results <- list(date_storm,export_Chl,export_H2O)
+results = as.data.frame(as.vector(results))
+colnames(results) <- c("date","Chl_export","H2O_export") 
+df<-rbind(df,results)
+
+}
+
+
+write.csv(df,file = "C:/Users/mpeipoch/Dropbox/manuscripts/RiverPlankton/working_files/Export.csv") #
+```
+
