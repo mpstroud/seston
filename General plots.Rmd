@@ -152,3 +152,43 @@ chldata_stormflow$date<- as_date(chldata_stormflow$date) #lubridate function, ou
                                 }
 
 ```
+
+```{r}
+# Libraries
+library(ggplot2)
+library(dplyr)
+library(viridis)
+
+data<- read.table("clipboard", header=T, sep="\t")
+
+model = lm(FI_Chl ~ GDD+Season, data=data)
+summary(model)
+
+# Per site and 3 axes----CHl
+p <- ggplot(data, aes(FI_Chl, HI_Chl))
+p + geom_point(size=4, aes(colour = factor(Qmag))) +
+    scale_color_viridis(discrete=TRUE) +
+    theme_bw() +
+    theme(legend.position="bottom") +
+    ylab("HI") +
+    xlab("FI") +
+    xlim(-1, 1)+ylim(-1, 1) + 
+    theme(legend.position = "none")
+
+# Per site and 3 axes----Turbidity
+p <- ggplot(data, aes(FI_Turb, HI_Turb))
+p + geom_point(size=4, aes(colour = factor(Qmag))) +
+    scale_color_viridis(discrete=TRUE) +
+    theme_bw() +
+    theme(legend.position="bottom") +
+    ylab("HI") +
+    xlab("FI") +
+    xlim(-1, 1)+ylim(-1, 1) + 
+    theme(legend.position = "none")
+
+
+
+
+```
+
+

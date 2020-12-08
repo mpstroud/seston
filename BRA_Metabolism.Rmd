@@ -6,10 +6,10 @@ output: html_document
 The following script uses StreamMetabolizer to estimate GPP and ER rates at the Brandywine stations.
 Installation details. OMIT if necessary
 ```{r setup, include=FALSE}
-remotes::install_github('appling/unitted') #somteimes Rcpp has no binary version yet, if so, don;t update from source versions, instead, say no to the source compilation and install the most recent binary version
+remotes::install_github('appling/unitted') #sometimes Rcpp has no binary version yet, if so, don't update from source versions, instead, say no to the source compilation and install the most recent binary version
 remotes::install_github("USGS-R/streamMetabolizer") #directly from Git so we get the most recent version
 
-#other nececessary packages: 
+#other necessary packages: 
 pack_list<-list ("Rtools","rstan")
 for(i in 1:length(pack_list)){
   p <- pack_list[[i]]
@@ -18,12 +18,12 @@ for(i in 1:length(pack_list)){
 
 ```
 
-Data input following guidelines:
+Data input must follow
 FOR DO and TEMPREATURE, I used miniDOT data when available and until Jan-7, 2020. Then we switched to DO probe in mayfly.
 When data from sensors (miniDOT or Mayfly) are not available or clearly compromised (out of water, malfunction,etc.) I used USGS data to fill gaps
 PAR data come from WCD696 station at White Clay Creek
 Gage data come from USGS station. 
-DOsat concentration is calculated fom temperature data prior to analysis
+DOsat concentration is calculated from temperature data prior to analysis
 ```{r}
 library(streamMetabolizer) ; library(unitted) ; library(lubridate) ; library(dplyr)
 # file inoput is named BRA_BAM_Met_mmmYYYY
@@ -34,7 +34,7 @@ dat <- read.csv("BRA_BAM_Met_Apr2020.csv",head=T,sep=",") # load csv data
 #select only days of baseflow, use the list genrated by FlowSeparation script.
 dat$solar.time<-as.POSIXct(dat$solar.time, format="%m/%d/%y %H:%M", tz="EST")
 dat$day<- date(dat$solar.time)
-dates<-read.csv("BRA_BAM_15min_BaseFlowDates.csv") ; colnames(dates) <- c("id","day")
+dates<-read.csv("BRA_BAM_15min_BaseFlowDates2.csv") ; colnames(dates) <- c("id","day")
 dat$day<- as_date(dat$day) ; dates$day <- as_date(dates$day)
 dat<- right_join(dat, dates, by="day") ; dat <- dat [,c(-7:-8)]
 
@@ -45,7 +45,7 @@ dat$solar.time <- streamMetabolizer::calc_solar_time(dat$solar.time, longitude=-
 
 unitats<-c(	"", "mgO2 L^-1" ,	"mgO2 L^-1"	, "m"	, "degC" , "umol m^-2 s^-1") #attach units and form a unitted data.frame
 dat_unitted<-u(dat, units = unitats)
-dat_unitted[c(1,48,96,240,288),] #check that numbers are of rigth magnitude according to the suppoesed units 
+dat_unitted[c(1,48,96,240,288),] #check that numbers are of right magnitude according to the supposed units 
 ```
 
 Visualization of raw data
@@ -96,7 +96,7 @@ dat_unitted %>% unitted::v() %>%
   facet_grid(units ~ ., scale='free_y') + theme_bw() +
   scale_color_discrete('black')
 
-#DO concetration and saturation, water temperature, and light
+#DO concentration and saturation, water temperature, and light
 labels <- c(DO.obs='DO concentration\n(mg/L)', DO.sat='Do saturation(%)', temp.water='water temp\n(deg C)', light='PAR\n(umol m-2 s-1)')
 dat_unitted %>% unitted::v() %>%
   select(DO.obs,DO.sat,solar.time, temp.water, light) %>%
@@ -120,7 +120,7 @@ bayes_name
 bayes_specs <- specs(bayes_name)
 bayes_specs
 #specifications of model (i.e. priors)
-bayes_specs <- specs(bayes_name, burnin_steps=100, saved_steps=200, n_cores=1,K600_daily_meanlog = 10)
+bayes_specs <- specs(bayes_name, burnin_steps=500, saved_steps=500, n_cores=4,K600_daily_meanlog = 2.48)
 #run model
 mm_proba <- metab(bayes_specs, data=dat)
 mm <- metab(bayes_specs, data=dat_unitted)
@@ -128,7 +128,6 @@ mm
 #model parameters
 output<-predict_metab(mm_proba)
 output
-output[c(11:25),]
 plot_metab_preds(mm_proba)
 #check for collinearity between ER and K600
 output2<-get_params(mm_proba)
@@ -144,29 +143,5 @@ output
 
 ```
 
-```{r}
-######model 2:Maximum likelihood estimation
-mle_name<- mm_name(type='mle')
-mle_name
-mle_specs <- specs(mle_name)
-mle_specs
-mle_specs <- specs(mle_name, init.GPP.daily=15, init.ER.daily=-12, init.K600.daily=3)
-mle_specs <- specs(mle_name, day_start=5, day_end=29, init.K600.daily=100,init.GPP.daily=15)
-mle_specs
-mm <- metab(mle_specs, data=dat_check2, info=c(site='Miller Creek', source='Kim Bray'))
-mm <- metab(mle_specs, data=dat_check2)
-#extract specific pieces of info
-get_info(mm)
-head(get_data(mm))
-get_fitting_time(mm) #time for model to run
-get_specs(mm) #model specs
 
-#predict and plot metabolism estimates from MLE model
-predict_metab(mm)
-plot_metab_preds(mm)
-#predict and plot DO predictions from MLE model AND observed values
-plot_DO_preds(mm)
-head(predict_DO(mm))
-
-```
 
