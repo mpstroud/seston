@@ -36,10 +36,10 @@ Adjust dates of interest and station
 # first, we need to download USGS data, merge with PAR and inspect for gaps/outliers in DO
 
 ########################add here the dates for each storm event and site ######################################################
-startQdate = "2019-03-1"
-endQdate = "2019-12-1"
+startQdate = "2019-07-1"
+endQdate = "2019-07-31"
 siteQcode = "01481000" #01481000 for BAM and 01481500 for WILMA
-file.name= "All.csv"
+file.name= "BAM_Aug2019.csv"
 pCodes = list("00060", "00300", "00010" )
 ```
 
@@ -124,6 +124,8 @@ Met_data$light = round(Met_data$light,0)
 unitats<-c(	"", "mgO2 L^-1" ,	"mgO2 L^-1"	, "m"	, "degC" , "umol m^-2 s^-1") #attach units and form a unitted data.frame
 dat_unitted<-u(Met_data, units = unitats)
 dat_unitted[c(1,48,96,240,288),] #check that numbers are of right magnitude according to the supposed units 
+
+Met_data2 = Met_data[-c(2160:2190),]
 ```
 
 Visualization of raw data to ensure data input is allright
