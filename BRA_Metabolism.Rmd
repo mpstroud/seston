@@ -36,10 +36,10 @@ Adjust dates of interest and station
 # first, we need to download USGS data, merge with PAR and inspect for gaps/outliers in DO
 
 ########################add here the dates for each storm event and site ######################################################
-startQdate = "2019-07-1"
-endQdate = "2019-07-31"
+startQdate = "2020-5-1"
+endQdate = "2020-5-31"
 siteQcode = "01481000" #01481000 for BAM and 01481500 for WILMA
-file.name= "BAM_Aug2019.csv"
+file.name= "BAM_Jun2020.csv"
 pCodes = list("00060", "00300", "00010" )
 ```
 
@@ -78,6 +78,7 @@ temp_data <- full_join(miniDOTdata, Met_data_original, by = "date")
 temp_data$S1 <- dplyr::coalesce(temp_data[["DO.x"]],  temp_data[["DO.y"]])
 temp_data$S2 <- dplyr::coalesce(temp_data[["Temp.x"]],  temp_data[["Temp.y"]])
 
+   
 Met_data_original = temp_data %>%
   select(.,date,Q,S1,S2) 
 colnames(Met_data_original) <- c("date" , "Q" , "DO" , "Temp")
@@ -85,7 +86,7 @@ Met_data_original = Met_data_original[complete.cases(Met_data_original),]
 Met_data_original = arrange(Met_data_original, date)
 
 #add PAR data (umol m^-2 s^-1) from SWRC
-PARdata = read.csv("C:/Users/mpeipoch/Dropbox/manuscripts/RiverPlankton/working_files/PARdata_smt.csv")
+PARdata = read.csv("C:/Users/mpeipoch/Dropbox/manuscripts/RiverPlankton/working_files/PARdata_smt_add.csv")
 PARdata$date = as.POSIXct(PARdata$date, format="%m/%d/%Y %H:%M", tz='America/New_York')
 PARdata = PARdata[,1:2] #drop variables that we don't need
 Met_data_original = left_join(Met_data_original,PARdata, by ="date")
@@ -125,7 +126,80 @@ unitats<-c(	"", "mgO2 L^-1" ,	"mgO2 L^-1"	, "m"	, "degC" , "umol m^-2 s^-1") #at
 dat_unitted<-u(Met_data, units = unitats)
 dat_unitted[c(1,48,96,240,288),] #check that numbers are of right magnitude according to the supposed units 
 
-Met_data2 = Met_data[-c(2160:2190),]
+Met_data2 = Met_data[-c(510:1800),]
+
+```
+
+Alternative----------------------------Gather data FROM USGS ONLY and format
+```{r}
+Met_data_original = as.data.frame(seq(ymd_hm('2019-03-01 00:00'),ymd_hm('2020-11-30 23:45'), by = '15 mins')) #creature the full date vector a priori, when merging with the data will allow us to identify and keep NAs
+colnames(Met_data_original) <- c("date")
+Met_data_original$date <- lubridate::force_tz(Met_data_original$date, 'Etc/GMT+5') #transform into EST
+
+for (i in 1:3) {
+
+siteNo <- siteQcode
+pCode <- pCodes[[i]]
+start.date <- startQdate
+end.date <- endQdate 
+####retrieve data every 15min
+        BAM_q <- readNWISuv(siteNumbers = siteNo, 
+                            parameterCd = pCode, 
+                            startDate = start.date, 
+                            endDate = end.date,tz = "EST") 
+
+Qtemp = BAM_q[,3:4]; colnames(Qtemp)<-c("date","par")
+Met_data_original = inner_join(Met_data_original,Qtemp, by ="date")
+
+}
+
+Met_data_original = Met_data_original [,1:4]
+colnames(Met_data_original) <- c("date", "Q" , "DO" , "Temp")
+
+
+#add PAR data (umol m^-2 s^-1) from SWRC
+PARdata = read.csv("C:/Users/mpeipoch/Dropbox/manuscripts/RiverPlankton/working_files/PARdata_smt_add.csv")
+PARdata$date = as.POSIXct(PARdata$date, format="%m/%d/%Y %H:%M", tz='America/New_York')
+PARdata = PARdata[,1:2] #drop variables that we don't need
+Met_data_original = left_join(Met_data_original,PARdata, by ="date")
+
+
+#calculate DOsat from 
+Met_data_original$pressure = rep((0.9906*1.01325*1000),nrow(Met_data_original))
+Met_data_original$DOsat = calc_DO_sat(temp=u(Met_data_original$Temp,"degC"), press=u(Met_data_original$pressure,"mb"), sal=u(0,"PSU")) # units are checked
+
+
+#to calculate depth from discharge
+Met_data_original$Q = Met_data_original$Q*0.028316846592 
+Met_data_original$depth<-calc_depth(Q = u(Met_data_original$Q, "m^3 s^-1"), c = u(0.409, "m"), f = u(0.294, ""))
+
+
+#format date column as needed
+str(Met_data_original[,1]) #just to make sure that date is in a POSIXct format, as default from dateRetrieval::readNWISuv
+posix.time.localtz = Met_data_original$date
+lubridate::tz(posix.time.localtz) #should be "Etc/GMT+5
+Met_data_original$solar.time <- streamMetabolizer::calc_solar_time(posix.time.localtz, longitude=-75)
+
+Met_data = Met_data_original %>%
+  select(.,solar.time,DO, DOsat,depth,Temp,par) 
+  
+#rename columns in the final dataset
+colnames(Met_data) <- c("solar.time" , "DO.obs" , "DO.sat" , "depth" , "temp.water" , "light")
+
+
+#round numbers for depth and PAR
+Met_data$DO.sat = round(Met_data$DO.sat,2)
+Met_data$depth = round(Met_data$depth,1)
+Met_data$light = round(Met_data$light,0)
+
+
+#add units (transforms into a tibbble)
+unitats<-c(	"", "mgO2 L^-1" ,	"mgO2 L^-1"	, "m"	, "degC" , "umol m^-2 s^-1") #attach units and form a unitted data.frame
+dat_unitted<-u(Met_data, units = unitats)
+dat_unitted[c(1,48,96,240,288),] #check that numbers are of right magnitude according to the supposed units 
+
+Met_data2 = Met_data[-c(1430:1460),]
+
 ```
 
 Visualization of raw data to ensure data input is allright
@@ -158,10 +232,10 @@ dat_unitted %>% unitted::v() %>%
 
 ```
 
-
+Run the model
 ```{r}
 mle_BRA <- mm_name(type='mle')
-mle_specs <- specs(mle_BRA, init.GPP.daily= 4,init.ER.daily = -2,init.K600.daily = 2  )
+mle_specs <- specs(mle_BRA, init.GPP.daily= 2,init.ER.daily = -2,init.K600.daily = 2  )
 mle_specs #inspect and refine as needed
 mm_mle_BRA <- metab(mle_specs, data=dat_unitted, info=c(site='BRA', source='MPG'))
 
