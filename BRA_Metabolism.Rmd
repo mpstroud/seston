@@ -36,10 +36,10 @@ Adjust dates of interest and station
 # first, we need to download USGS data, merge with PAR and inspect for gaps/outliers in DO
 
 ########################add here the dates for each storm event and site ######################################################
-startQdate = "2020-5-1"
-endQdate = "2020-5-31"
+startQdate = "2019-6-29"
+endQdate = "2019-7-3"
 siteQcode = "01481000" #01481000 for BAM and 01481500 for WILMA
-file.name= "BAM_Jun2020.csv"
+file.name= "BAM_3Jun2019.csv"
 pCodes = list("00060", "00300", "00010" )
 ```
 
@@ -72,7 +72,7 @@ colnames(Met_data_original) <- c("date", "Q" , "DO" , "Temp")
 
 JIC_data = Met_data_original
 #add miniDOT DO data
-miniDOTdata = read.csv("C:/Users/mpeipoch/Dropbox/manuscripts/RiverPlankton/working_files/miniDOT_BAM.csv")
+miniDOTdata = read.csv("C:/Users/mpeipoch/Dropbox/manuscripts/RiverPlankton/working_files/miniDOT_WILMA.csv")
 miniDOTdata$date = as.POSIXct(miniDOTdata$date, format="%m/%d/%Y %H:%M", tz='America/New_York')
 temp_data <- full_join(miniDOTdata, Met_data_original, by = "date")
 temp_data$S1 <- dplyr::coalesce(temp_data[["DO.x"]],  temp_data[["DO.y"]])
@@ -93,12 +93,14 @@ Met_data_original = left_join(Met_data_original,PARdata, by ="date")
 
 
 #calculate DOsat from 
+#WILMA-----------------Met_data_original$pressure = rep((1011.929),nrow(Met_data_original))
 Met_data_original$pressure = rep((0.9906*1.01325*1000),nrow(Met_data_original))
 Met_data_original$DOsat = calc_DO_sat(temp=u(Met_data_original$Temp,"degC"), press=u(Met_data_original$pressure,"mb"), sal=u(0,"PSU")) # units are checked
 
 
 #to calculate depth from discharge
-Met_data_original$Q = Met_data_original$Q*0.028316846592 
+Met_data_original$Q = Met_data_original$Q*0.028316846592
+#WILMA----------------Met_data_original$depth<- 0.7273*(Met_data_original$Q^0.294)
 Met_data_original$depth<-calc_depth(Q = u(Met_data_original$Q, "m^3 s^-1"), c = u(0.409, "m"), f = u(0.294, ""))
 
 
@@ -126,8 +128,8 @@ unitats<-c(	"", "mgO2 L^-1" ,	"mgO2 L^-1"	, "m"	, "degC" , "umol m^-2 s^-1") #at
 dat_unitted<-u(Met_data, units = unitats)
 dat_unitted[c(1,48,96,240,288),] #check that numbers are of right magnitude according to the supposed units 
 
-Met_data2 = Met_data[-c(510:1800),]
-
+Met_data2 = Met_data[-c(1028,1070,2455),]
+Met_data2 = Met_data[!duplicated(Met_data$solar.time),]
 ```
 
 Alternative----------------------------Gather data FROM USGS ONLY and format
@@ -156,6 +158,11 @@ Met_data_original = inner_join(Met_data_original,Qtemp, by ="date")
 Met_data_original = Met_data_original [,1:4]
 colnames(Met_data_original) <- c("date", "Q" , "DO" , "Temp")
 
+write.csv(Met_data_original,"C:/Users/mpeipoch/Dropbox/manuscripts/RiverPlankton/working_files/temp.csv")
+Met_data_original = read.csv("C:/Users/mpeipoch/Dropbox/manuscripts/RiverPlankton/working_files/temp.csv")
+
+Met_data_original$date = as.POSIXct(Met_data_original$date, format="%m/%d/%Y %H:%M", tz='America/New_York')
+
 
 #add PAR data (umol m^-2 s^-1) from SWRC
 PARdata = read.csv("C:/Users/mpeipoch/Dropbox/manuscripts/RiverPlankton/working_files/PARdata_smt_add.csv")
@@ -165,12 +172,14 @@ Met_data_original = left_join(Met_data_original,PARdata, by ="date")
 
 
 #calculate DOsat from 
+#WILMA-----------------------Met_data_original$pressure = rep((1011.929),nrow(Met_data_original))
 Met_data_original$pressure = rep((0.9906*1.01325*1000),nrow(Met_data_original))
 Met_data_original$DOsat = calc_DO_sat(temp=u(Met_data_original$Temp,"degC"), press=u(Met_data_original$pressure,"mb"), sal=u(0,"PSU")) # units are checked
 
 
 #to calculate depth from discharge
 Met_data_original$Q = Met_data_original$Q*0.028316846592 
+#WILMA------------------------Met_data_original$depth<- 0.7273*(Met_data_original$Q^0.294)
 Met_data_original$depth<-calc_depth(Q = u(Met_data_original$Q, "m^3 s^-1"), c = u(0.409, "m"), f = u(0.294, ""))
 
 
@@ -198,11 +207,10 @@ unitats<-c(	"", "mgO2 L^-1" ,	"mgO2 L^-1"	, "m"	, "degC" , "umol m^-2 s^-1") #at
 dat_unitted<-u(Met_data, units = unitats)
 dat_unitted[c(1,48,96,240,288),] #check that numbers are of right magnitude according to the supposed units 
 
-Met_data2 = Met_data[-c(1430:1460),]
 
 ```
 
-Visualization of raw data to ensure data input is allright
+Visualization of raw data to ensure data input is all right
 ```{r}
 library(ggplot2); library(dplyr) ; library(tidyr) ;  library(rstan)
 #DO percent saturation and concentration
@@ -234,8 +242,8 @@ dat_unitted %>% unitted::v() %>%
 
 Run the model
 ```{r}
-mle_BRA <- mm_name(type='mle')
-mle_specs <- specs(mle_BRA, init.GPP.daily= 2,init.ER.daily = -2,init.K600.daily = 2  )
+mle_BRA <- mm_name(type='mle', ode_method='trapezoid')
+mle_specs <- specs(mle_BRA, init.GPP.daily= 2,init.ER.daily = -2,init.K600.daily = 4  )
 mle_specs #inspect and refine as needed
 mm_mle_BRA <- metab(mle_specs, data=dat_unitted, info=c(site='BRA', source='MPG'))
 
