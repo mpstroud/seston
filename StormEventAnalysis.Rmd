@@ -102,7 +102,7 @@ FI_tur = mean(norm_data[which(norm_data$Q == Qmax), "Turbidity_norm"]) -
             mean(norm_data[which(norm_data$Q == Qmin), "Turbidity_norm"])
 
 
-results <- list(date_storm,HI_chl, FI_chl, HI_tur, FI_tur, Qmax, Qmin, Chlmedian, Turbmedian)
+results <- list(date_storm,HI_chl, FI_chl, HI_tur, FI_tur, Qmax, Qmin, Chlmax, Turbmax)
 results = as.data.frame(as.vector(results))
 colnames(results) <- c("date","HI_chl","FI_chl","HI_turb","FI_turb","Qmax","Qmin","Chlmax","Turbmax") 
 df<-rbind(df,results)

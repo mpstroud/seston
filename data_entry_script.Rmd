@@ -18,17 +18,17 @@ Modifiy the following information before running the script
 ```{r}
 input_directory = "C:/Users/mpeipoch/Dropbox/COVID_TempDirectories/BrandywineSeston"
 output_directory = "C:/Users/mpeipoch/Dropbox/manuscripts/RiverPlankton/working_files"
-aggregfile = "BRA_BAM_Chl_Nov2020.csv"
-new_aggregfile = "BRA_BAM_Chl_Dec2020.csv"
-averaged_file = "BRA_BAM_15min.csv"
-q_file = "BRA_BAM_q.csv"
-t_file = "BRA_BAM_t.csv"
-qdaily_file = "BRA_BAM_qdaily.csv"
-tdaily_file = "BRA_BAM_tdaily.csv"
+aggregfile = "BRA_WILMA_Chl_Dec2020.csv"
+new_aggregfile = "BRA_WILMA_Chl_Dec2020.csv"
+averaged_file = "BRA_WILMA_15min.csv"
+q_file = "BRA_WILMA_q.csv"
+t_file = "BRA_WILMA_t.csv"
+qdaily_file = "BRA_WILMA_qdaily.csv"
+tdaily_file = "BRA_WILMA_tdaily.csv"
 lastfile = "SL084rawCSV2.1.csv"
 startQdate = "2019-03-01"
-endQdate = "2020-12-3"
-siteQcode = "01481000" #01481000 for BAM and 01481500 for WILMA
+endQdate = "2020-12-27"
+siteQcode = "01481500" #01481000 for BAM and 01481500 for WILMA
 
 ```
 
@@ -53,7 +53,7 @@ chldata = read.csv(aggregfile) ; chldata[,1] <- NULL ; chldata = select (chldata
 setwd(input_directory)
 chldata2 = read.csv(lastfile) ; head(chldata2,1)
 chldata = rbind(chldata,chldata2)
-chldata$datetime<- as.vector(as.POSIXct(paste(chldata$date, chldata$time), format="%m/%d/%y %H:%M:%S", tz="EST"))
+chldata$datetime<- as.vector(as.POSIXct(paste(chldata$date, chldata$time), format="%m/%d/%Y %H:%M:%S", tz="EST"))
 setwd(output_directory)
 
 #output #1, aggregated dataset of chl and temperature every 5min
@@ -151,7 +151,7 @@ Turb = BAM_t[,3:4];  colnames(Turb)<-c("date","Turbidity")
 Q$date <- as.POSIXct(Q$date, format="%m/%d/%Y %H:%M:%S", tz="EST") 
 Turb$date <- as.POSIXct(Turb$date, format="%m/%d/%Y %H:%M:%S", tz="EST") 
 
-QTurb <- right_join(Q,Turb,by = "date") 
+QTurb <- inner_join(Q,Turb,by = "date") 
 dataset.15min <- left_join(QTurb,dataset.15min,by = "date") #15min averaged dataset
 
 #output #3, aggregated dataset of chl and temperature every 5min

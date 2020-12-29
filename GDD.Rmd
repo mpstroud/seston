@@ -8,8 +8,9 @@ output: html_document
 ```{r setup, include=FALSE}
 
 startQdate = "2019-03-01"
-endQdate = "2020-12-3"
-siteQcode = "01481000" #01481000 for BAM and 01481500 for Wlibrary(dataRetrieval)#check station code online (usually an 8-15 digit numebr)
+endQdate = "2020-12-27"
+siteQcode = "01481000" #01481000 for BAM and 01481500 for WILMA
+library(dataRetrieval)#check station code online (usually an 8-15 digit numebr)
 
 library(dataRetrieval)
 ###checking parameter code
@@ -33,7 +34,7 @@ end.date <- endQdate
                             startDate = start.date, 
                             endDate = end.date) 
 
-Daily_Temp = BAM_q[,3:4]; colnames(Qtemp)<-c("date","Temperature")
+Daily_Temp = BAM_q[,3:4]; colnames(Daily_Temp)<-c("date","Temperature")
 Daily_Temp$date <- date(Daily_Temp$date) 
 
 GDD_Temp = Daily_Temp %>%
