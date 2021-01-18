@@ -148,5 +148,34 @@ grid.arrange(p,q,ncol=1)
 
 ```
 
+```{r}
+anova_data = read.table("clipboard",header = T,sep="\t")
+anova_data_v2 = subset(anova_data, Site == "BAM")
+
+results = aov(HI_Chl ~ Season, data=anova_data_v2)
+summary(results)
+TukeyHSD(results)
+
+results = aov(HI_Turb ~ Site, data=anova_data)
+summary(results)
+TukeyHSD(results)
+
+lm_data = read.table("clipboard",header = T,sep="\t")
+lm_data_v2 = subset(lm_data, Site == "BAM")
+lm_data_v2 = subset(lm_data, Site == "WILMA")
+
+results = lm(HI_Chl ~ Export_H2O, data=lm_data_v2)
+summary(results)
+results = lm(HI_Chl ~ Export.Chl.H2O, data=lm_data_v2)
+summary(results)
+results = lm(FI_Chl ~ log(Export_H2O), data=lm_data_v2)
+summary(results)
+results = lm(FI_Chl ~ Export.Chl.H2O, data=lm_data_v2)
+summary(results)
+
+
+
+```
+
 
 
