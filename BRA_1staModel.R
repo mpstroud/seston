@@ -5,60 +5,110 @@ install.packages('dplyr', repos="http://cran.cnr.berkeley.edu/")
 library(dplyr)
 install.packages('tidyr', repos="http://cran.cnr.berkeley.edu/")
 library(tidyr)
+library(gdata)
+library(bayesplot)
 
 
 
-
-###################model 1:Istvanovics et al. 2011 model##############
+###################model 1:Bormann and Webster 1999##############
 
 options(mc.cores = parallel::detectCores())
 #this code allows stan to count the number of cores and run 4 chains on each core. 
 ##load data
 
-data<-read.csv("eco models.csv")
+data<-read.csv("/Users/mpeipoch/Dropbox/BRA_BWmodel.csv")
 head(data)
 datain <- list(N = length(data$conc), 
                conc =data$conc, 
-               Q = data$Q, 
-               A = data$A, 
+               H = data$H, 
                t= data$t)
 datain
+
+write("//Stan model for a simple exponential model of dChl/dt based on Borman an Webster 1999
+      
+      data{
+      int < lower = 1 > N; // Sample size
+      vector[N] H; // Predictor
+      vector[N] conc; // Outcome
+}
+
+parameters {
+ real alpha; // Intercept
+ real beta; // Slope (regression coefficients)
+ real < lower = 0 > sigma; // Error SD
+}
+
+model {
+ conc ~ normal(alpha + H * beta , sigma);
+}
+
+generated quantities {
+} // The posterior predictive distribution",
+
+"BWmodel.stan")
+
+stanc("BWmodel.stan") #check if the model is written
+stan_model1 <- "BWmodel.stan" #save the file path for the model
+
+fit <- stan(file = stan_model1, data = datain, warmup = 500, iter = 1000, chains = 4, cores = 2, thin = 1)
+
+
+fit
+
+
+#We can also look at the full posterior of our parameters by extracting them from the model object. 
+
+posterior <- extract(fit)
+str(posterior)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 ##model 1
-sink("nmodel.stan")
+sink("BWmodel.stan")
 
 cat("
     
     data {
     int <lower = 1> N;
-    vector[N] travel;//travel time 
-    vector[N] Bp;//seston chl @WILMA
-    vector[N] Bi;//seston chl @BAM
-    vector[N] G;//net growth
-    vector[N] Vs;//deposition velocity
-    vector[N] Z;//depth
-    vector[N] v;//water velocity
-    vector[N] Ks;//resuspension velocity
-    vector[N] Bb;//benthic conc.
+    vector[N] H;//channel depth  //channel depth is a vector of length N
+    vector[N] conc;//chl conc. //nitrate conc. is a vector of length N
     }
     
     parameters {
-    real G;                // growth
-    real Vs;                // deposition velocity
-    real Ks;                // resuspension velocity
-    real<lower = 0> sigma; //  standard deviation
+     real intercept;                // intercept aka. initial conc
+     real U;                // growth
+     real W;                // deposition velocity
+     real<lower = 0> sigma; //  standard deviation
     }
     
     model {
     for (i in 1:N){
-    Bp[i]~ normal( -1/travel[i]*(Bp[i] - Bi[i]) + Bp[i]*G*(-Vs/Z[i])*Bp[i]+((Ks*v[i]^2)/Z[i])*Bb[i]), sigma); // likelihood
+    conc[i] ~ normal(intercept*(U-(W/H[i])), sigma); // likelihood
     }
-    G~normal(0.1,10); //priors
-    Vs~normal(2,3); //priors
-    Ks~normal(2,3); //priors
+    U~normal(0,10); //priors
+    W~normal(0,5);
+    intercept~normal(0,0.29);
     sigma~normal(0,1);
+    
     }
     "
     ,fill=TRUE)
@@ -66,7 +116,7 @@ sink()
 
 #run the MCMC
 
-fit <- stan("nmodel.stan", data = datain,  iter = 1000, chains = 4,control = list(max_treedepth = 15))
+fit <- stan("BWmodel.stan", data = datain,  iter = 1000, chains = 4,control = list(max_treedepth = 15))
 load("fit.RData")
 print(fit)
 traceplot(fit,pars="U")
