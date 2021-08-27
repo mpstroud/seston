@@ -20,7 +20,7 @@ for(i in 1:length(pack_list)){
 
 
 
-Data input must follow strict format:
+#Data input must follow strict format:
 i) will download DO, T, and depth form USGS
 ii) gaps and anomalies are filled with our data
 iii) PAR comes form SWRC weather station
@@ -31,22 +31,22 @@ library(streamMetabolizer) ; library(unitted) ; library(lubridate) ; library(dpl
 ```
 
 
-Adjust dates of interest and station
+#Adjust dates of interest and station
 ```{r}
 # first, we need to download USGS data, merge with PAR and inspect for gaps/outliers in DO
 
 ########################add here the dates for each storm event and site ######################################################
-startQdate = "2020-5-28"
-endQdate = "2020-6-2"
+startQdate = "2019-3-1"
+endQdate = "2020-12-31"
 siteQcode = "01481000" #01481000 for BAM and 01481500 for WILMA
-file.name= "BAM_4Jun2020.csv"
+file.name= "BAM_do.csv"
 pCodes = list("00060", "00300", "00010" )
 ```
 
 
-Gather data and format
+#Gather data and format
 ```{r}
-Met_data_original = as.data.frame(seq(ymd_hm('2019-03-01 00:00'),ymd_hm('2020-11-30 23:45'), by = '15 mins')) #creature the full date vector a priori, when merging with the data will allow us to identify and keep NAs
+Met_data_original = as.data.frame(seq(ymd_hm('2019-03-01 00:00'),ymd_hm('2020-12-31 23:45'), by = '15 mins')) #creature the full date vector a priori, when merging with the data will allow us to identify and keep NAs
 colnames(Met_data_original) <- c("date")
 Met_data_original$date <- lubridate::force_tz(Met_data_original$date, 'Etc/GMT+5') #transform into EST
 
@@ -132,7 +132,7 @@ Met_data2 = Met_data[-c(1028,1070,2455),]
 Met_data2 = Met_data[!duplicated(Met_data$solar.time),]
 ```
 
-Alternative----------------------------Gather data FROM USGS ONLY and format
+#Alternative----------------------------Gather data FROM USGS ONLY and format
 ```{r}
 Met_data_original = as.data.frame(seq(ymd_hm('2019-03-01 00:00'),ymd_hm('2020-11-30 23:45'), by = '15 mins')) #creature the full date vector a priori, when merging with the data will allow us to identify and keep NAs
 colnames(Met_data_original) <- c("date")
@@ -204,7 +204,7 @@ dat_unitted[c(1,48,96,240,288),] #check that numbers are of right magnitude acco
 
 ```
 
-Visualization of raw data to ensure data input is all right
+#Visualization of raw data to ensure data input is all right
 ```{r}
 library(ggplot2); library(dplyr) ; library(tidyr) ;  library(rstan)
 #DO percent saturation and concentration
@@ -234,7 +234,7 @@ dat_unitted %>% unitted::v() %>%
 
 ```
 
-Run the model
+#Run the model
 ```{r}
 mle_BRA <- mm_name(type='mle', ode_method='trapezoid')
 mle_specs <- specs(mle_BRA, init.GPP.daily= 2,init.ER.daily = -2,init.K600.daily = 4  )
