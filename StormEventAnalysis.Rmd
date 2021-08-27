@@ -14,8 +14,8 @@ setwd("C:/Users/mpeipoch/Dropbox/manuscripts/RiverPlankton/working_files/stormfi
 
 ```{r}
 file.names <- dir(getwd(), pattern =".csv") 
-df<-data.frame(matrix(ncol = 9, nrow = 0)) 
-colnames(df) <- c("date","HI_chl","FI_chl","HI_turb","FI_turb","Qmax","Qmin","Chlmax","Turbmax") #name for the nine vars: date_storm,HI_chl, FI_chl, HI_tur, FI_tur, Qmax, Qmin, Chlmax, Turbmax
+df<-data.frame(matrix(ncol = 10, nrow = 0)) 
+colnames(df) <- c("date","HI_chl","FI_chl","HI_turb","FI_turb","Qmax","Qmin","Chlmax","Turbmax","lag_chl") #name for the nine vars: date_storm,HI_chl, FI_chl, HI_tur, FI_tur, Qmax, Qmin, Chlmax, Turbmax
 
 for(i in 1:length(file.names)){  
               
@@ -29,7 +29,7 @@ Chlmax = max(raw_data$Chl) ; Chlmin = min(raw_data$Chl)
 Turbmax = max(raw_data$Turb) ; Turbmin = min(raw_data$Turb)
 Chlmedian = median(raw_data$Chl)
 Turbmedian = median(raw_data$Turb)
-
+lag_chl = ((min(which(raw_data$Q == Qmax))) - (min(which(raw_data$Chl == Chlmax))))*15 #expressed in minutes
 
 norm_data = raw_data #end for raw_data
 #normalize Q, Chl, and Turb
@@ -103,9 +103,9 @@ FI_tur = mean(norm_data[which(norm_data$Q == Qmax), "Turbidity_norm"]) -
             mean(norm_data[1:3, "Turbidity_norm"])
 
 
-results <- list(date_storm,HI_chl, FI_chl, HI_tur, FI_tur, Qmax, Qmin, Chlmax, Chlmin)
+results <- list(date_storm,HI_chl, FI_chl, HI_tur, FI_tur, Qmax, Qmin, Chlmax, Turbmax,lag_chl)
 results = as.data.frame(as.vector(results))
-colnames(results) <- c("date","HI_chl","FI_chl","HI_turb","FI_turb","Qmax","Qmin","Chlmax","Chlmin") 
+colnames(results) <- c("date","HI_chl","FI_chl","HI_turb","FI_turb","Qmax","Qmin","Chlmax","Turbmax","lag_chl") 
 df<-rbind(df,results)
 
 }
