@@ -36,10 +36,10 @@ library(streamMetabolizer) ; library(unitted) ; library(lubridate) ; library(dpl
 # first, we need to download USGS data, merge with PAR and inspect for gaps/outliers in DO
 
 ########################add here the dates for each storm event and site ######################################################
-startQdate = "2019-3-1"
-endQdate = "2020-12-31"
-siteQcode = "01481000" #01481000 for BAM and 01481500 for WILMA
-file.name= "BAM_DO_ALL.csv"
+startQdate = "2019-6-1"
+endQdate = "2019-12-31"
+siteQcode = "01481500" #01481000 for BAM and 01481500 for WILMA
+file.name= "WILMA_BAYES_All.csv"
 pCodes = list("00060", "00300", "00010" )
 ```
 
@@ -166,15 +166,15 @@ Met_data_original = left_join(Met_data_original,PARdata, by ="date")
 
 
 #calculate DOsat from 
-#WILMA-----------------------Met_data_original$pressure = rep((1011.929),nrow(Met_data_original))
-Met_data_original$pressure = rep((0.9906*1.01325*1000),nrow(Met_data_original))
+Met_data_original$pressure = rep((1011.929),nrow(Met_data_original))
+#BAM-----------------------Met_data_original$pressure = rep((0.9906*1.01325*1000),nrow(Met_data_original))
 Met_data_original$DOsat = calc_DO_sat(temp=u(Met_data_original$Temp,"degC"), press=u(Met_data_original$pressure,"mb"), sal=u(0,"PSU")) # units are checked
 
 
 #to calculate depth from discharge
 Met_data_original$Q = Met_data_original$Q*0.028316846592 
-#WILMA-----------------------Met_data_original$depth<- 0.7273*(Met_data_original$Q^0.294)
-Met_data_original$depth<-calc_depth(Q = u(Met_data_original$Q, "m^3 s^-1"), c = u(0.409, "m"), f = u(0.294, ""))
+Met_data_original$depth<- 0.7273*(Met_data_original$Q^0.294)
+#BAM-----------------------Met_data_original$depth<-calc_depth(Q = u(Met_data_original$Q, "m^3 s^-1"), c = u(0.409, "m"), f = u(0.294, ""))
 
 
 #format date column as needed
@@ -248,7 +248,7 @@ mm_mle_BRA <- metab(mle_specs, data=dat_unitted, info=c(site='BRA', source='MPG'
 
 #BAYESIAN MODEL
 bayes_mydatanoq <- mm_name(type='bayes', pool_K600='normal', err_obs_iid=TRUE, err_proc_iid=TRUE)
-bayes_specs <- specs(bayes_mydatanoq)
+bayes_specs <- specs(bayes_mydatanoq,burnin_steps = 300,saved_steps = 300,K600_daily_meanlog_meanlog = log(10))
 bayes_specs
 mm_bayes_BRA <- metab(bayes_specs, data=dat_unitted, info=c(site='BRA', source='MPG'))
 
@@ -256,7 +256,7 @@ mm_bayes_BRA <- metab(bayes_specs, data=dat_unitted, info=c(site='BRA', source='
 #examine results
 plot_DO_preds(mm_mle_BRA)
 plot_metab_preds(mm_mle_BRA)
-mle_mydata.s_daily<-get_params(mm_mle_BRA)
+mle_mydata.s_daily<-get_params(mm_bayes_BRA)
 
 #check for collinearity between ER and K600
 output2<-get_params(mm_mle_BRA)
